@@ -5,6 +5,7 @@ import { fetchMe, loginUser, registerUser } from './store/thunks/authThunks'
 import { fetchProfile, saveProfile } from './store/thunks/profileThunks'
 import './App.css'
 import './index.css'
+import logo from './assets/logo.png'
 
 const defaultAbout = {
   headline: '',
@@ -1368,7 +1369,19 @@ function App() {
       <div className="content-shell">
         {view !== 'dashboard' && (
           <section className="auth-shell">
+            <div className="auth-topbar">
+              <button
+                type="button"
+                className="theme-btn"
+                onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              >
+                {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+              </button>
+            </div>
             <div className="hero-panel panel auth-card" style={{ marginBottom: 14 }}>
+              <div className="auth-logo">
+                <img src={logo} alt="Brand logo" />
+              </div>
               <h1 className="text-center">
               {view === 'login' ? 'Admin Access Login' : 'Admin Access Sign up'}
             </h1>
