@@ -2,13 +2,22 @@ const bcrypt = require('bcrypt')
 const User = require('../models/user.model')
 const { signToken } = require('../config/auth')
 
+const normalizeRole = (role) => {
+  const value = String(role || 'partner').toLowerCase().trim()
+  if (value === 'owner') return 'owner'
+  if (value === 'admin') return 'admin'
+  return 'partner'
+}
+
+const getRole = (user) => normalizeRole(user?.role)
+
 const sanitizeUser = (user) => ({
   id: user._id,
   fullName: user.fullName,
   email: user.email,
   mobile: user.mobile,
   company: user.company,
-  role: user.role,
+  role: getRole(user),
   createdAt: user.createdAt,
 })
 
@@ -33,10 +42,10 @@ const register = async (req, res) => {
       mobile,
       password: hashed,
       company,
-      role: role === 'admin' ? 'admin' : 'partner',
+      role: normalizeRole(role),
     })
 
-    const token = signToken({ sub: user._id, mobile: user.mobile, role: user.role })
+    const token = signToken({ sub: user._id, mobile: user.mobile, role: getRole(user) })
 
     return res.status(201).json({
       user: sanitizeUser(user),
@@ -66,7 +75,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' })
     }
 
-    const token = signToken({ sub: user._id, mobile: user.mobile, role: user.role })
+    const token = signToken({ sub: user._id, mobile: user.mobile, role: getRole(user) })
 
     return res.json({
       user: sanitizeUser(user),

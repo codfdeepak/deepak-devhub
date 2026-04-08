@@ -4,6 +4,7 @@ const {
   getMyProfile,
   upsertMyProfile,
   getPublicProfile,
+  getPartnersProfiles,
 } = require('../controllers/profile.controller')
 
 const router = express.Router()
@@ -13,6 +14,7 @@ router.get('/me', authMiddleware, getMyProfile)
 router.put('/me', authMiddleware, upsertMyProfile)
 
 // public view
+router.get('/partners', getPartnersProfiles)
 router.get('/public', getPublicProfile)
 router.get('/public/:userId', getPublicProfile)
 

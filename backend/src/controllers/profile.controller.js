@@ -11,7 +11,11 @@ const getMyProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ user: req.user.sub })
     if (!profile) {
-      return res.status(404).json({ message: 'Profile not found' })
+      return res.json({
+        profile: null,
+        profileSetupRequired: true,
+        message: 'Profile not set yet',
+      })
     }
     return res.json({ profile })
   } catch (err) {
@@ -51,4 +55,29 @@ const getPublicProfile = async (req, res) => {
   }
 }
 
-module.exports = { getMyProfile, upsertMyProfile, getPublicProfile }
+const getPartnersProfiles = async (_req, res) => {
+  try {
+    const partnerDocs = await Profile.find({})
+      .select('user about.headline about.avatar skills experience')
+      .populate('user', 'fullName role')
+      .sort({ updatedAt: -1 })
+
+    const partners = partnerDocs.map((doc) => {
+      const profile = doc.toObject()
+      const role = String(profile?.user?.role || 'partner').toLowerCase()
+
+      return {
+        ...profile,
+        role,
+        isOwner: role === 'admin' || role === 'owner',
+      }
+    })
+
+    return res.json({ partners })
+  } catch (err) {
+    console.error('Partners profile error:', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+module.exports = { getMyProfile, upsertMyProfile, getPublicProfile, getPartnersProfiles }

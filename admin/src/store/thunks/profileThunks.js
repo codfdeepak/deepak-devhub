@@ -32,6 +32,9 @@ export const fetchProfile = createAsyncThunk(
       });
       return data.profile;
     } catch (err) {
+      if (err?.message === "Profile not found" || err?.message === "Profile not set yet") {
+        return null;
+      }
       return rejectWithValue(err.message);
     }
   },

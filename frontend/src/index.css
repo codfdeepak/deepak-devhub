@@ -2,10 +2,11 @@
 
 :root {
   font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  color: #e6ecff;
-  background-color: #05070d;
+  color: var(--text);
+  background-color: var(--bg);
   line-height: 1.5;
   font-weight: 400;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 * {
