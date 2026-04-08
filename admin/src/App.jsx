@@ -5,7 +5,8 @@ import { fetchMe, loginUser, registerUser } from './store/thunks/authThunks'
 import { fetchProfile, saveProfile } from './store/thunks/profileThunks'
 import './App.css'
 import './index.css'
-import logo from './assets/logo.png'
+import logoDark from './assets/logo1.png'
+import logoLight from './assets/logo2.png'
 
 const defaultAbout = {
   headline: '',
@@ -1380,7 +1381,7 @@ function App() {
             </div>
             <div className="hero-panel panel auth-card" style={{ marginBottom: 14 }}>
               <div className="auth-logo">
-                <img src={logo} alt="Brand logo" />
+                <img src={theme === 'dark' ? logoDark : logoLight} alt="Brand logo" />
               </div>
               <h1 className="text-center">
               {view === 'login' ? 'Admin Access Login' : 'Admin Access Sign up'}
