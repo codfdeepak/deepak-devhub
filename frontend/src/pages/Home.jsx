@@ -1,27 +1,44 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import ConsultationModal from '../components/consultation/ConsultationModal'
 import Hero from '../components/Hero'
 import PageFrame from '../components/layout/PageFrame'
 import PartnerMarquee from '../components/partners/PartnerMarquee'
+import Services from './Services'
 import { selectPartners, selectPartnersError, selectPartnersStatus } from '../Redux/slices/partnerSlice'
 import { fetchPartners } from '../Redux/thunks/partnerThunks'
 
 function Home() {
   const dispatch = useDispatch()
   const partners = useSelector(selectPartners)
-  const status = useSelector(selectPartnersStatus)
-  const error = useSelector(selectPartnersError)
+  const partnersStatus = useSelector(selectPartnersStatus)
+  const partnersError = useSelector(selectPartnersError)
+  const [isConsultationOpen, setIsConsultationOpen] = useState(false)
+  const [selectedServiceName, setSelectedServiceName] = useState('')
 
   useEffect(() => {
-    if (status === 'idle') {
+    if (partnersStatus === 'idle') {
       dispatch(fetchPartners())
     }
-  }, [dispatch, status])
+  }, [dispatch, partnersStatus])
+
+  const openConsultationForm = (serviceName = '') => {
+    setSelectedServiceName(serviceName)
+    setIsConsultationOpen(true)
+  }
 
   return (
     <PageFrame id="home">
-      <Hero />
-      <PartnerMarquee partners={partners} status={status} error={error} />
+      <Hero onDiscuss={openConsultationForm} />
+      <PartnerMarquee partners={partners} status={partnersStatus} error={partnersError} />
+      <Services embedded />
+
+      {isConsultationOpen && (
+        <ConsultationModal
+          onClose={() => setIsConsultationOpen(false)}
+          defaultServiceName={selectedServiceName}
+        />
+      )}
     </PageFrame>
   )
 }

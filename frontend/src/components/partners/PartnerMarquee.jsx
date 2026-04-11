@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365
 const SWIPE_INTERVAL_MS = 3200
+const SWIPE_TRANSITION_MS = 650
 const DESKTOP_VISIBLE_CARDS = 3
 
 const getPartnerName = (partner) => partner?.user?.fullName || 'Partner Profile'
@@ -57,6 +58,7 @@ function PartnerMarquee({ partners, status, error }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [enableTransition, setEnableTransition] = useState(true)
 
+  const hasPartners = partners.length > 0
   const hasMultiplePartners = partners.length > 1
 
   const carouselItems = useMemo(() => {
@@ -77,6 +79,10 @@ function PartnerMarquee({ partners, status, error }) {
   useEffect(() => {
     if (!hasMultiplePartners) return undefined
 
+    const prefersReducedMotion =
+      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return undefined
+
     const timer = window.setInterval(() => {
       setActiveIndex((current) => current + 1)
       setEnableTransition(true)
@@ -91,15 +97,27 @@ function PartnerMarquee({ partners, status, error }) {
     return () => window.cancelAnimationFrame(frame)
   }, [enableTransition])
 
+  useEffect(() => {
+    if (!hasMultiplePartners) return undefined
+    if (activeIndex < partners.length) return undefined
+
+    const timer = window.setTimeout(() => {
+      setEnableTransition(false)
+      setActiveIndex(0)
+    }, SWIPE_TRANSITION_MS + 40)
+
+    return () => window.clearTimeout(timer)
+  }, [activeIndex, hasMultiplePartners, partners.length])
+
   const handleTransitionEnd = () => {
     if (!hasMultiplePartners) return
-    if (activeIndex === partners.length) {
+    if (activeIndex >= partners.length) {
       setEnableTransition(false)
       setActiveIndex(0)
     }
   }
 
-  if (status === 'loading' && partners.length === 0) {
+  if (status === 'loading' && !hasPartners) {
     return (
       <section className="partners-marquee-only">
         <div className="partners-carousel-shell">
@@ -119,7 +137,7 @@ function PartnerMarquee({ partners, status, error }) {
     )
   }
 
-  if (status === 'error') {
+  if (status === 'error' && !hasPartners) {
     return (
       <section className="partners-marquee-only">
         <div className="partners-error">Failed to load partners: {error}</div>
@@ -127,7 +145,7 @@ function PartnerMarquee({ partners, status, error }) {
     )
   }
 
-  if (status !== 'loading' && partners.length === 0) {
+  if (status !== 'loading' && !hasPartners) {
     return (
       <section className="partners-marquee-only">
         <div className="muted">No partners found.</div>

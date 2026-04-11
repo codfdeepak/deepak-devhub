@@ -7,6 +7,9 @@ const { ensureUserRoles } = require("./src/utils/ensureUserRoles");
 
 const authRoutes = require("./src/routes/auth.routes");
 const profileRoutes = require("./src/routes/profile.routes");
+const serviceRoutes = require("./src/routes/service.routes");
+const consultationRoutes = require("./src/routes/consultation.routes");
+const heroRoutes = require("./src/routes/hero.routes");
 
 const app = express();
 
@@ -33,6 +36,9 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/consultations", consultationRoutes);
+app.use("/api/hero", heroRoutes);
 
 const PORT = process.env.PORT || 5000;
 

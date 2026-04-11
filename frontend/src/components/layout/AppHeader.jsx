@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import logoDark from '../../assets/logo1.png'
-import logoLight from '../../assets/logo2.png'
+import { useEffect, useRef, useState } from "react";
+import { NavLink } from "react-router-dom";
+import logoDark from "../../assets/logo1.png";
+import logoLight from "../../assets/logo2.png";
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/about-us', label: 'About Us' },
-  { to: '/services', label: 'Services' },
-  { to: '/partners', label: 'Partners' },
-  { to: '/enquiry', label: 'Enquiry' },
-  { to: '/contact-us', label: 'Contact Us' },
-]
+  { to: "/", label: "Home", end: true },
+  { to: "/about-us", label: "About Us" },
+  { to: "/services", label: "Services" },
+  { to: "/partners", label: "Partners" },
+  { to: "/enquiry", label: "Enquiry" },
+  { to: "/contact-us", label: "Contact Us" },
+];
 
 function SunMetalIcon() {
   return (
@@ -27,12 +27,24 @@ function SunMetalIcon() {
           <stop offset="100%" stopColor="#a86f2b" />
         </radialGradient>
       </defs>
-      <g fill="none" stroke="url(#sun-ray-grad)" strokeLinecap="round" strokeWidth="1.8">
+      <g
+        fill="none"
+        stroke="url(#sun-ray-grad)"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      >
         <path d="M12 2.6v2.3M12 19.1v2.3M21.4 12h-2.3M4.9 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4" />
       </g>
-      <circle cx="12" cy="12" r="4.3" fill="url(#sun-core-grad)" stroke="#8f6426" strokeWidth="0.6" />
+      <circle
+        cx="12"
+        cy="12"
+        r="4.3"
+        fill="url(#sun-core-grad)"
+        stroke="#8f6426"
+        strokeWidth="0.6"
+      />
     </svg>
-  )
+  );
 }
 
 function MoonMetalIcon() {
@@ -62,50 +74,57 @@ function MoonMetalIcon() {
         strokeWidth="0.5"
       />
     </svg>
-  )
+  );
 }
 
 function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
-  const [hoveredPath, setHoveredPath] = useState('')
-  const clearHoverTimerRef = useRef(null)
+  const [hoveredPath, setHoveredPath] = useState("");
+  const clearHoverTimerRef = useRef(null);
 
   const getNavClassName = (isActive, path) => {
-    const classNames = []
-    if (isActive) classNames.push('active')
-    if (hoveredPath === path) classNames.push('hovered')
-    return classNames.join(' ')
-  }
+    const classNames = [];
+    if (isActive) classNames.push("active");
+    if (hoveredPath === path) classNames.push("hovered");
+    return classNames.join(" ");
+  };
 
   const queueHoverClear = () => {
     if (clearHoverTimerRef.current) {
-      window.clearTimeout(clearHoverTimerRef.current)
+      window.clearTimeout(clearHoverTimerRef.current);
     }
     clearHoverTimerRef.current = window.setTimeout(() => {
-      setHoveredPath('')
-      clearHoverTimerRef.current = null
-    }, 220)
-  }
+      setHoveredPath("");
+      clearHoverTimerRef.current = null;
+    }, 220);
+  };
 
   useEffect(
     () => () => {
       if (clearHoverTimerRef.current) {
-        window.clearTimeout(clearHoverTimerRef.current)
+        window.clearTimeout(clearHoverTimerRef.current);
       }
     },
     [],
-  )
+  );
 
   return (
     <nav className="top-nav">
       <div className="nav-left">
         <div className="brand">
           <div className="brand-mark">
-            <img src={theme === 'dark' ? logoDark : logoLight} alt="Deepak Kumar logo" />
+            <img
+              src={theme === "dark" ? logoDark : logoLight}
+              alt="Deepak Kumar logo"
+            />
+          </div>
+          <div className="brand-copy">
+            <span className="brand-title">MeraDev Technologies</span>
+            <span className="brand-tag">Tech Solution Company</span>
           </div>
         </div>
       </div>
 
-      <div className={`nav-links ${navOpen ? 'open' : ''}`}>
+      <div className={`nav-links ${navOpen ? "open" : ""}`}>
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
@@ -113,16 +132,16 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
             end={item.end}
             className={({ isActive }) => getNavClassName(isActive, item.to)}
             onMouseEnter={() => setHoveredPath(item.to)}
-            onMouseLeave={() => setHoveredPath('')}
+            onMouseLeave={() => setHoveredPath("")}
             onTouchStart={() => setHoveredPath(item.to)}
             onTouchEnd={queueHoverClear}
             onClick={() => {
               if (clearHoverTimerRef.current) {
-                window.clearTimeout(clearHoverTimerRef.current)
-                clearHoverTimerRef.current = null
+                window.clearTimeout(clearHoverTimerRef.current);
+                clearHoverTimerRef.current = null;
               }
-              setHoveredPath('')
-              onCloseNav()
+              setHoveredPath("");
+              onCloseNav();
             }}
           >
             {item.label}
@@ -135,14 +154,14 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
           type="button"
           className="theme-toggle"
           onClick={onToggleTheme}
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
-          {theme === 'dark' ? <SunMetalIcon /> : <MoonMetalIcon />}
+          {theme === "dark" ? <SunMetalIcon /> : <MoonMetalIcon />}
         </button>
 
         <button
           type="button"
-          className={`burger ${navOpen ? 'open' : ''}`}
+          className={`burger ${navOpen ? "open" : ""}`}
           onClick={onToggleNav}
           aria-label="Toggle menu"
           aria-expanded={navOpen}
@@ -153,7 +172,7 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
         </button>
       </div>
     </nav>
-  )
+  );
 }
 
-export default AppHeader
+export default AppHeader;

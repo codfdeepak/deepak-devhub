@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import ConsultationsPanel from './components/ConsultationsPanel'
 import { clearError, logout } from './store/slices/authSlice'
 import { fetchMe, loginUser, registerUser } from './store/thunks/authThunks'
+import {
+  createOwnerHeroSlide,
+  deleteOwnerHeroSlide,
+  fetchOwnerHeroSlides,
+  updateOwnerHeroSlide,
+} from './store/thunks/heroThunks'
 import { fetchProfile, saveProfile } from './store/thunks/profileThunks'
+import {
+  createOwnerService,
+  deleteOwnerService,
+  fetchOwnerServices,
+  updateOwnerService,
+} from './store/thunks/serviceThunks'
 import './App.css'
 import './index.css'
 import logoDark from './assets/logo1.png'
@@ -65,12 +78,23 @@ const emptyProject = () => ({
 })
 
 const emptyService = () => ({
+  _id: '',
   name: '',
-  summary: '',
-  priceFrom: '',
-  currency: 'USD',
-  unit: 'project',
-  tags: [],
+  image: '',
+  description: '',
+  bulletPoints: [''],
+  snapshots: [],
+  sortOrder: 0,
+  isActive: true,
+})
+
+const emptyHeroSlide = () => ({
+  _id: '',
+  image: '',
+  title: '',
+  description: '',
+  sortOrder: 0,
+  isActive: true,
 })
 
 const emptySocial = () => ({
@@ -100,6 +124,8 @@ const TAB_LABELS = {
   experience: 'Experience',
   projects: 'Projects',
   services: 'Services',
+  hero: 'Hero',
+  consultations: 'Consultations',
   socials: 'Socials',
   contact: 'Contact',
 }
@@ -110,12 +136,35 @@ const arrayFromCsv = (value = '') =>
     .map((s) => s.trim())
     .filter(Boolean)
 
+const normalizeServiceForm = (service = {}) => ({
+  ...emptyService(),
+  ...service,
+  bulletPoints:
+    Array.isArray(service.bulletPoints) && service.bulletPoints.length ? service.bulletPoints : [''],
+  snapshots: Array.isArray(service.snapshots) ? service.snapshots.slice(0, 15) : [],
+})
+
+const normalizeHeroForm = (slide = {}) => ({
+  ...emptyHeroSlide(),
+  ...slide,
+})
+
 function App() {
   const dispatch = useDispatch()
   const { status, error, user } = useSelector((state) => state.auth)
   const { profile, status: profileStatus, error: profileError } = useSelector(
     (state) => state.profile,
   )
+  const {
+    items: ownerServices,
+    status: ownerServicesStatus,
+    error: ownerServicesError,
+  } = useSelector((state) => state.services)
+  const {
+    items: ownerHeroSlides,
+    status: ownerHeroStatus,
+    error: ownerHeroError,
+  } = useSelector((state) => state.hero)
 
   const [view, setView] = useState('login')
 
@@ -176,11 +225,17 @@ function App() {
   const [experience, setExperience] = useState([emptyExperience()])
   const [projects, setProjects] = useState([emptyProject()])
   const [services, setServices] = useState([emptyService()])
+  const [heroSlides, setHeroSlides] = useState([emptyHeroSlide()])
   const [socials, setSocials] = useState([emptySocial()])
   const [contact, setContact] = useState(defaultContact)
   const [isFreelanceOpen, setIsFreelanceOpen] = useState(true)
   const [savingSection, setSavingSection] = useState(null)
   const [toast, setToast] = useState('')
+  const [serviceDraftLoaded, setServiceDraftLoaded] = useState(false)
+  const [heroDraftLoaded, setHeroDraftLoaded] = useState(false)
+
+  const userRole = String(user?.role || '').toLowerCase()
+  const canManageServices = userRole === 'owner' || userRole === 'admin'
 
   useEffect(() => {
     if (!profile) return
@@ -206,11 +261,6 @@ function App() {
         ? profile.projects.map((item) => ({ ...emptyProject(), ...item }))
         : [emptyProject()],
     )
-    setServices(
-      profile.services && profile.services.length
-        ? profile.services.map((item) => ({ ...emptyService(), ...item }))
-        : [emptyService()],
-    )
     setSocials(
       profile.socials && profile.socials.length
         ? profile.socials.map((item) => ({ ...emptySocial(), ...item }))
@@ -219,6 +269,48 @@ function App() {
     setContact({ ...defaultContact, ...(profile.contact || {}) })
     setIsFreelanceOpen(profile.isFreelanceOpen ?? true)
   }, [profile])
+
+  useEffect(() => {
+    if (!user || !canManageServices) return
+    dispatch(fetchOwnerServices())
+  }, [dispatch, user, canManageServices])
+
+  useEffect(() => {
+    if (!user || !canManageServices) return
+    dispatch(fetchOwnerHeroSlides())
+  }, [dispatch, user, canManageServices])
+
+  useEffect(() => {
+    if (!canManageServices) {
+      setServices([emptyService()])
+      setServiceDraftLoaded(false)
+      return
+    }
+
+    if (ownerServicesStatus === 'loading') return
+
+    setServices(
+      ownerServices && ownerServices.length ? ownerServices.map((service) => normalizeServiceForm(service)) : [emptyService()],
+    )
+    setServiceDraftLoaded(true)
+  }, [ownerServices, ownerServicesStatus, canManageServices])
+
+  useEffect(() => {
+    if (!canManageServices) {
+      setHeroSlides([emptyHeroSlide()])
+      setHeroDraftLoaded(false)
+      return
+    }
+
+    if (ownerHeroStatus === 'loading') return
+
+    setHeroSlides(
+      ownerHeroSlides && ownerHeroSlides.length
+        ? ownerHeroSlides.map((slide) => normalizeHeroForm(slide))
+        : [emptyHeroSlide()],
+    )
+    setHeroDraftLoaded(true)
+  }, [ownerHeroSlides, ownerHeroStatus, canManageServices])
 
   const addItem = (setter, factory) => setter((prev) => [...prev, factory()])
   const removeItem = (setter, list, index, min = 1) => {
@@ -231,22 +323,19 @@ function App() {
   }
 
   const sectionTitle = useMemo(() => TAB_LABELS[activeTab], [activeTab])
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
 
   const handleProjectImages = async (index, files) => {
     const fileList = Array.from(files || [])
     if (!fileList.length) return
 
-    const asDataUrls = await Promise.all(
-      fileList.map(
-        (file) =>
-          new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result)
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          }),
-      ),
-    )
+    const asDataUrls = await Promise.all(fileList.map((file) => fileToDataUrl(file)))
 
     setProjects((prev) =>
       prev.map((proj, i) => {
@@ -273,15 +362,214 @@ function App() {
     )
   }
 
+  const handleServiceCoverUpload = async (index, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    setServices((prev) => prev.map((svc, i) => (i === index ? { ...svc, image: dataUrl } : svc)))
+  }
+
+  const handleHeroImageUpload = async (index, file) => {
+    if (!file) return
+    const dataUrl = await fileToDataUrl(file)
+    setHeroSlides((prev) => prev.map((slide, i) => (i === index ? { ...slide, image: dataUrl } : slide)))
+  }
+
+  const handleServiceSnapshotsUpload = async (index, files) => {
+    const fileList = Array.from(files || [])
+    if (!fileList.length) return
+
+    const current = services[index]?.snapshots || []
+    const remainingSlots = Math.max(0, 15 - current.length)
+    const selectedFiles = fileList.slice(0, remainingSlots)
+    const snapshots = await Promise.all(selectedFiles.map((file) => fileToDataUrl(file)))
+
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== index) return svc
+        return { ...svc, snapshots: [...(svc.snapshots || []), ...snapshots].slice(0, 15) }
+      }),
+    )
+
+    if (fileList.length > selectedFiles.length) {
+      setToast('Only 15 snapshots allowed per service')
+      setTimeout(() => setToast(''), 2200)
+    }
+  }
+
+  const removeServiceSnapshot = (serviceIndex, snapshotIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc
+        return {
+          ...svc,
+          snapshots: (svc.snapshots || []).filter((_, idx) => idx !== snapshotIndex),
+        }
+      }),
+    )
+  }
+
+  const addServiceBulletPoint = (serviceIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc
+        return { ...svc, bulletPoints: [...(svc.bulletPoints || []), ''] }
+      }),
+    )
+  }
+
+  const removeServiceBulletPoint = (serviceIndex, bulletIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc
+        const current = svc.bulletPoints || []
+        if (current.length <= 1) {
+          return { ...svc, bulletPoints: [''] }
+        }
+        return { ...svc, bulletPoints: current.filter((_, idx) => idx !== bulletIndex) }
+      }),
+    )
+  }
+
+  const sanitizeServicePayload = (service) => ({
+    name: String(service.name || '').trim(),
+    image: String(service.image || '').trim(),
+    description: String(service.description || '').trim(),
+    bulletPoints: (service.bulletPoints || []).map((point) => String(point || '').trim()).filter(Boolean),
+    snapshots: (service.snapshots || []).slice(0, 15),
+    sortOrder: Number.isFinite(Number(service.sortOrder)) ? Number(service.sortOrder) : 0,
+    isActive: service.isActive !== false,
+  })
+
+  const sanitizeHeroPayload = (slide) => ({
+    image: String(slide.image || '').trim(),
+    title: String(slide.title || '').trim(),
+    description: String(slide.description || '').trim(),
+    sortOrder: Number.isFinite(Number(slide.sortOrder)) ? Number(slide.sortOrder) : 0,
+    isActive: slide.isActive !== false,
+  })
+
+  const handleSaveService = async (service, index) => {
+    const payload = sanitizeServicePayload(service)
+
+    if (!payload.name) {
+      setToast('Service name is required')
+      setTimeout(() => setToast(''), 2200)
+      return
+    }
+
+    if (!payload.description) {
+      setToast('Service description is required')
+      setTimeout(() => setToast(''), 2200)
+      return
+    }
+
+    const tracker = `service-${service._id || index}`
+    setSavingSection(tracker)
+    try {
+      if (service._id) {
+        await dispatch(updateOwnerService({ serviceId: service._id, payload })).unwrap()
+        setToast('Service updated')
+      } else {
+        await dispatch(createOwnerService(payload)).unwrap()
+        setToast('Service created')
+      }
+      setServiceDraftLoaded(false)
+      dispatch(fetchOwnerServices())
+    } catch (err) {
+      setToast(err.message || 'Unable to save service')
+    } finally {
+      setSavingSection(null)
+      setTimeout(() => setToast(''), 2200)
+    }
+  }
+
+  const handleDeleteService = async (service, index) => {
+    if (!service._id) {
+      removeItem(setServices, services, index, 1)
+      return
+    }
+
+    const tracker = `service-delete-${service._id}`
+    setSavingSection(tracker)
+    try {
+      await dispatch(deleteOwnerService(service._id)).unwrap()
+      setToast('Service deleted')
+      setServiceDraftLoaded(false)
+      dispatch(fetchOwnerServices())
+    } catch (err) {
+      setToast(err.message || 'Unable to delete service')
+    } finally {
+      setSavingSection(null)
+      setTimeout(() => setToast(''), 2200)
+    }
+  }
+
+  const handleSaveHeroSlide = async (slide, index) => {
+    const payload = sanitizeHeroPayload(slide)
+
+    if (!payload.image) {
+      setToast('Hero image is required')
+      setTimeout(() => setToast(''), 2200)
+      return
+    }
+
+    if (!payload.title) {
+      setToast('Hero title is required')
+      setTimeout(() => setToast(''), 2200)
+      return
+    }
+
+    if (!payload.description) {
+      setToast('Hero description is required')
+      setTimeout(() => setToast(''), 2200)
+      return
+    }
+
+    const tracker = `hero-${slide._id || index}`
+    setSavingSection(tracker)
+    try {
+      if (slide._id) {
+        await dispatch(updateOwnerHeroSlide({ heroId: slide._id, payload })).unwrap()
+        setToast('Hero slide updated')
+      } else {
+        await dispatch(createOwnerHeroSlide(payload)).unwrap()
+        setToast('Hero slide created')
+      }
+      setHeroDraftLoaded(false)
+      dispatch(fetchOwnerHeroSlides())
+    } catch (err) {
+      setToast(err.message || 'Unable to save hero slide')
+    } finally {
+      setSavingSection(null)
+      setTimeout(() => setToast(''), 2200)
+    }
+  }
+
+  const handleDeleteHeroSlide = async (slide, index) => {
+    if (!slide._id) {
+      removeItem(setHeroSlides, heroSlides, index, 1)
+      return
+    }
+
+    const tracker = `hero-delete-${slide._id}`
+    setSavingSection(tracker)
+    try {
+      await dispatch(deleteOwnerHeroSlide(slide._id)).unwrap()
+      setToast('Hero slide deleted')
+      setHeroDraftLoaded(false)
+      dispatch(fetchOwnerHeroSlides())
+    } catch (err) {
+      setToast(err.message || 'Unable to delete hero slide')
+    } finally {
+      setSavingSection(null)
+      setTimeout(() => setToast(''), 2200)
+    }
+  }
+
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
+    const dataUrl = await fileToDataUrl(file)
     setAbout((prev) => ({ ...prev, avatar: dataUrl }))
     e.target.value = ''
     try {
@@ -342,13 +630,7 @@ function App() {
           })),
         }
       case 'services':
-        return {
-          services: services.map((svc) => ({
-            ...svc,
-            priceFrom: prepNumber(svc.priceFrom),
-            tags: svc.tags || [],
-          })),
-        }
+        return {}
       case 'socials':
         return {
           socials: socials.map((soc) => ({
@@ -1038,77 +1320,321 @@ function App() {
   const renderServices = () => (
     <div className="section">
       <SectionHeader
-        title="Services"
+        title="Owner Services"
         cta={
-          <button
-            className="primary"
-            type="button"
-            onClick={() => handleSaveSection('services')}
-            disabled={savingSection === 'services'}
-          >
-            {savingSection === 'services' ? 'Saving…' : 'Save Services'}
-          </button>
+          canManageServices ? (
+            <button
+              className="ghost"
+              type="button"
+              onClick={() => dispatch(fetchOwnerServices())}
+              disabled={ownerServicesStatus === 'loading'}
+            >
+              {ownerServicesStatus === 'loading' ? 'Refreshing…' : 'Refresh'}
+            </button>
+          ) : null
         }
       />
+
+      {!canManageServices && (
+        <p className="muted">Only owner/admin accounts can add, update, or delete services from this dashboard.</p>
+      )}
+
+      {canManageServices && (
+        <p className="hint">
+          Fill service name, image, description, bullet points, and snapshots (max 15), then publish each service.
+        </p>
+      )}
+
+      {canManageServices && ownerServicesError && <p className="error">{ownerServicesError}</p>}
 
       <div className="stack">
         {services.map((svc, idx) => (
           <div className="item-card" key={`svc-${idx}`}>
             <div className="item-top">
-              <strong>Service {idx + 1}</strong>
+              <strong>{svc._id ? `Service ${idx + 1}` : 'New Service Draft'}</strong>
               <button
                 className="link-btn"
                 type="button"
-                onClick={() => removeItem(setServices, services, idx)}
-                disabled={services.length === 1}
+                onClick={() => handleDeleteService(svc, idx)}
+                disabled={
+                  !canManageServices ||
+                  savingSection === `service-delete-${svc._id}` ||
+                  savingSection === `service-${svc._id || idx}`
+                }
               >
-                Remove
+                {svc._id ? 'Delete' : 'Remove'}
               </button>
-            </div>
-
-            <div className="grid two">
-              <label className="field">
-                <span>Title</span>
-                <input
-                  value={svc.name}
-                  onChange={(e) => handleArrayField(setServices, services, idx, 'name', e.target.value)}
-                  placeholder="Web app development"
-                />
-              </label>
-              <label className="field">
-                <span>Starting price</span>
-                <input
-                  type="number"
-                  value={svc.priceFrom}
-                  onChange={(e) => handleArrayField(setServices, services, idx, 'priceFrom', e.target.value)}
-                  placeholder="1500"
-                />
-              </label>
             </div>
 
             <div className="grid three">
               <label className="field">
-                <span>Currency</span>
+                <span>Service name</span>
                 <input
-                  value={svc.currency}
-                  onChange={(e) => handleArrayField(setServices, services, idx, 'currency', e.target.value)}
-                  placeholder="USD"
+                  value={svc.name}
+                  onChange={(e) => handleArrayField(setServices, services, idx, 'name', e.target.value)}
+                  placeholder="E-Commerce Website"
+                  disabled={!canManageServices}
                 />
               </label>
               <label className="field">
-                <span>Unit</span>
+                <span>Primary image URL</span>
                 <input
-                  value={svc.unit}
-                  onChange={(e) => handleArrayField(setServices, services, idx, 'unit', e.target.value)}
-                  placeholder="project / sprint / hour"
+                  value={svc.image}
+                  onChange={(e) => handleArrayField(setServices, services, idx, 'image', e.target.value)}
+                  placeholder="https://cdn.../service-cover.jpg"
+                  disabled={!canManageServices}
                 />
               </label>
               <label className="field">
-                <span>Tags (comma separated)</span>
+                <span>Sort order</span>
                 <input
-                  value={(svc.tags || []).join(', ')}
-                  onChange={(e) => handleArrayField(setServices, services, idx, 'tags', arrayFromCsv(e.target.value))}
-                  placeholder="MVP, Dashboard, API"
+                  type="number"
+                  value={svc.sortOrder ?? 0}
+                  onChange={(e) => handleArrayField(setServices, services, idx, 'sortOrder', e.target.value)}
+                  placeholder="0"
+                  disabled={!canManageServices}
+                />
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select
+                  value={svc.isActive === false ? 'inactive' : 'active'}
+                  onChange={(e) =>
+                    handleArrayField(setServices, services, idx, 'isActive', e.target.value === 'active')
+                  }
+                  disabled={!canManageServices}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="grid two">
+              <label className="field">
+                <span>Upload primary image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleServiceCoverUpload(idx, e.target.files?.[0])}
+                  disabled={!canManageServices}
+                />
+              </label>
+              <label className="field">
+                <span>Upload snapshots (max 15)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleServiceSnapshotsUpload(idx, e.target.files)}
+                  disabled={!canManageServices}
+                />
+              </label>
+            </div>
+
+            <label className="field">
+              <span>Description</span>
+              <textarea
+                rows={4}
+                value={svc.description}
+                onChange={(e) => handleArrayField(setServices, services, idx, 'description', e.target.value)}
+                placeholder="Write full service description"
+                disabled={!canManageServices}
+              />
+            </label>
+
+            <div className="service-bullets">
+              <div className="item-top">
+                <strong>Bullet points</strong>
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={() => addServiceBulletPoint(idx)}
+                  disabled={!canManageServices}
+                >
+                  + Add bullet
+                </button>
+              </div>
+
+              <div className="stack">
+                {(svc.bulletPoints || []).map((point, bulletIndex) => (
+                  <div className="service-bullet-row" key={`svc-${idx}-point-${bulletIndex}`}>
+                    <input
+                      value={point}
+                      onChange={(e) => {
+                        const next = [...(svc.bulletPoints || [])]
+                        next[bulletIndex] = e.target.value
+                        handleArrayField(setServices, services, idx, 'bulletPoints', next)
+                      }}
+                      placeholder="Secure checkout flow"
+                      disabled={!canManageServices}
+                    />
+                    <button
+                      className="link-btn"
+                      type="button"
+                      onClick={() => removeServiceBulletPoint(idx, bulletIndex)}
+                      disabled={!canManageServices || (svc.bulletPoints || []).length <= 1}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="gallery-row">
+              <div className="chip">{(svc.snapshots || []).length} / 15 snapshots</div>
+              <div className="thumbs">
+                {(svc.snapshots || []).map((img, snapshotIndex) => (
+                  <div className="thumb" key={`svc-${idx}-shot-${snapshotIndex}`}>
+                    <img src={img} alt={`service-snapshot-${snapshotIndex + 1}`} />
+                    <button
+                      type="button"
+                      className="link-btn"
+                      onClick={() => removeServiceSnapshot(idx, snapshotIndex)}
+                      disabled={!canManageServices}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="service-actions">
+              <button
+                className="primary"
+                type="button"
+                onClick={() => handleSaveService(svc, idx)}
+                disabled={
+                  !canManageServices ||
+                  savingSection === `service-${svc._id || idx}` ||
+                  savingSection === `service-delete-${svc._id}`
+                }
+              >
+                {savingSection === `service-${svc._id || idx}`
+                  ? 'Submitting…'
+                  : svc._id
+                    ? 'Update Service'
+                    : 'Submit Service'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="ghost"
+        type="button"
+        onClick={() => addItem(setServices, emptyService)}
+        disabled={!canManageServices || !serviceDraftLoaded}
+      >
+        + Add service
+      </button>
+    </div>
+  )
+
+  const renderHero = () => (
+    <div className="section">
+      <SectionHeader
+        title="Hero Slides"
+        cta={
+          canManageServices ? (
+            <button
+              className="ghost"
+              type="button"
+              onClick={() => dispatch(fetchOwnerHeroSlides())}
+              disabled={ownerHeroStatus === 'loading'}
+            >
+              {ownerHeroStatus === 'loading' ? 'Refreshing…' : 'Refresh'}
+            </button>
+          ) : null
+        }
+      />
+
+      {!canManageServices && (
+        <p className="muted">Only owner/admin accounts can add, update, or delete hero slides from this dashboard.</p>
+      )}
+
+      {canManageServices && (
+        <p className="hint">
+          Add hero image, title, and description. Home page hero look will stay same, only this content changes.
+        </p>
+      )}
+
+      {canManageServices && ownerHeroError && <p className="error">{ownerHeroError}</p>}
+
+      <div className="stack">
+        {heroSlides.map((slide, idx) => (
+          <div className="item-card" key={`hero-${idx}`}>
+            <div className="item-top">
+              <strong>{slide._id ? `Hero Slide ${idx + 1}` : 'New Hero Slide Draft'}</strong>
+              <button
+                className="link-btn"
+                type="button"
+                onClick={() => handleDeleteHeroSlide(slide, idx)}
+                disabled={
+                  !canManageServices ||
+                  savingSection === `hero-delete-${slide._id}` ||
+                  savingSection === `hero-${slide._id || idx}`
+                }
+              >
+                {slide._id ? 'Delete' : 'Remove'}
+              </button>
+            </div>
+
+            <div className="grid three">
+              <label className="field">
+                <span>Title</span>
+                <input
+                  value={slide.title}
+                  onChange={(e) => handleArrayField(setHeroSlides, heroSlides, idx, 'title', e.target.value)}
+                  placeholder="Premium Product Engineering"
+                  disabled={!canManageServices}
+                />
+              </label>
+              <label className="field">
+                <span>Image URL</span>
+                <input
+                  value={slide.image}
+                  onChange={(e) => handleArrayField(setHeroSlides, heroSlides, idx, 'image', e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  disabled={!canManageServices}
+                />
+              </label>
+              <label className="field">
+                <span>Sort order</span>
+                <input
+                  type="number"
+                  value={slide.sortOrder ?? 0}
+                  onChange={(e) => handleArrayField(setHeroSlides, heroSlides, idx, 'sortOrder', e.target.value)}
+                  placeholder="0"
+                  disabled={!canManageServices}
+                />
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select
+                  value={slide.isActive === false ? 'inactive' : 'active'}
+                  onChange={(e) =>
+                    handleArrayField(setHeroSlides, heroSlides, idx, 'isActive', e.target.value === 'active')
+                  }
+                  disabled={!canManageServices}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="grid two">
+              <label className="field">
+                <span>Upload image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleHeroImageUpload(idx, e.target.files?.[0])}
+                  disabled={!canManageServices}
                 />
               </label>
             </div>
@@ -1117,17 +1643,42 @@ function App() {
               <span>Description</span>
               <textarea
                 rows={3}
-                value={svc.summary}
-                onChange={(e) => handleArrayField(setServices, services, idx, 'summary', e.target.value)}
-                placeholder="What you deliver and outcomes"
+                value={slide.description}
+                onChange={(e) => handleArrayField(setHeroSlides, heroSlides, idx, 'description', e.target.value)}
+                placeholder="High-impact web experiences crafted for performance and business growth."
+                disabled={!canManageServices}
               />
             </label>
+
+            <div className="service-actions">
+              <button
+                className="primary"
+                type="button"
+                onClick={() => handleSaveHeroSlide(slide, idx)}
+                disabled={
+                  !canManageServices ||
+                  savingSection === `hero-${slide._id || idx}` ||
+                  savingSection === `hero-delete-${slide._id}`
+                }
+              >
+                {savingSection === `hero-${slide._id || idx}`
+                  ? 'Submitting…'
+                  : slide._id
+                    ? 'Update Hero'
+                    : 'Submit Hero'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      <button className="ghost" type="button" onClick={() => addItem(setServices, emptyService)}>
-        + Add service
+      <button
+        className="ghost"
+        type="button"
+        onClick={() => addItem(setHeroSlides, emptyHeroSlide)}
+        disabled={!canManageServices || !heroDraftLoaded}
+      >
+        + Add hero slide
       </button>
     </div>
   )
@@ -1355,6 +1906,8 @@ function App() {
     experience: renderExperience,
     projects: renderProjects,
     services: renderServices,
+    hero: renderHero,
+    consultations: () => <ConsultationsPanel />,
     socials: renderSocials,
     contact: renderContact,
   }

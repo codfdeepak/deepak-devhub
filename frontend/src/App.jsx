@@ -7,6 +7,7 @@ import Enquiry from './pages/Enquiry'
 import Home from './pages/Home'
 import Partners from './pages/Partners'
 import ProfileDetails from './pages/ProfileDetails'
+import ServiceDetails from './pages/ServiceDetails'
 import Services from './pages/Services'
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/services/:serviceId" element={<ServiceDetails />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/profile/:userId" element={<ProfileDetails />} />
         <Route path="/enquiry" element={<Enquiry />} />
