@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
-import logoDark from "../../assets/logo1.png";
-import logoLight from "../../assets/logo2.png";
+import logoDark from "../assets/logo1.png";
+import logoLight from "../assets/logo2.png";
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", end: true },
-  { to: "/about-us", label: "About Us" },
   { to: "/services", label: "Services" },
+  { to: "/payment-policy", label: "Payment Policy" },
   { to: "/partners", label: "Partners" },
-  { to: "/enquiry", label: "Enquiry" },
+  { to: "/about-us", label: "About Us" },
   { to: "/contact-us", label: "Contact Us" },
 ];
 
@@ -80,6 +80,7 @@ function MoonMetalIcon() {
 function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
   const [hoveredPath, setHoveredPath] = useState("");
   const clearHoverTimerRef = useRef(null);
+  const closeNavTimerRef = useRef(null);
 
   const getNavClassName = (isActive, path) => {
     const classNames = [];
@@ -88,20 +89,62 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
     return classNames.join(" ");
   };
 
-  const queueHoverClear = () => {
+  const queueHoverClear = (delay = 260) => {
     if (clearHoverTimerRef.current) {
       window.clearTimeout(clearHoverTimerRef.current);
     }
     clearHoverTimerRef.current = window.setTimeout(() => {
       setHoveredPath("");
       clearHoverTimerRef.current = null;
-    }, 220);
+    }, delay);
+  };
+
+  const queueNavClose = (delay = 0) => {
+    if (closeNavTimerRef.current) {
+      window.clearTimeout(closeNavTimerRef.current);
+      closeNavTimerRef.current = null;
+    }
+
+    if (delay <= 0) {
+      onCloseNav();
+      return;
+    }
+
+    closeNavTimerRef.current = window.setTimeout(() => {
+      onCloseNav();
+      closeNavTimerRef.current = null;
+    }, delay);
+  };
+
+  const isCoarsePointer = () =>
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+  const handleNavItemClick = () => {
+    if (clearHoverTimerRef.current) {
+      window.clearTimeout(clearHoverTimerRef.current);
+      clearHoverTimerRef.current = null;
+    }
+
+    if (isCoarsePointer()) {
+      // Keep tap highlight visible briefly on mobile before menu closes.
+      queueHoverClear(360);
+      queueNavClose(120);
+      return;
+    }
+
+    setHoveredPath("");
+    queueNavClose();
   };
 
   useEffect(
     () => () => {
       if (clearHoverTimerRef.current) {
         window.clearTimeout(clearHoverTimerRef.current);
+      }
+      if (closeNavTimerRef.current) {
+        window.clearTimeout(closeNavTimerRef.current);
       }
     },
     [],
@@ -135,14 +178,8 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
             onMouseLeave={() => setHoveredPath("")}
             onTouchStart={() => setHoveredPath(item.to)}
             onTouchEnd={queueHoverClear}
-            onClick={() => {
-              if (clearHoverTimerRef.current) {
-                window.clearTimeout(clearHoverTimerRef.current);
-                clearHoverTimerRef.current = null;
-              }
-              setHoveredPath("");
-              onCloseNav();
-            }}
+            onTouchCancel={() => setHoveredPath("")}
+            onClick={handleNavItemClick}
           >
             {item.label}
           </NavLink>

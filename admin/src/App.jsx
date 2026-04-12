@@ -25,7 +25,6 @@ const defaultAbout = {
   headline: '',
   summary: '',
   location: '',
-  availability: 'available',
   avatar: '',
   website: '',
 }
@@ -129,6 +128,14 @@ const TAB_LABELS = {
   socials: 'Socials',
   contact: 'Contact',
 }
+
+const PROFILE_SETUP_TABS = ['about', 'education', 'skills', 'experience', 'projects', 'socials', 'contact']
+const OWNER_ACCESS_TABS = ['services', 'hero', 'consultations']
+
+const TAB_GROUPS = [
+  { key: 'profile-setup', title: 'Profile Setup', tabs: PROFILE_SETUP_TABS },
+  { key: 'owner-access', title: 'Owner Access', tabs: OWNER_ACCESS_TABS },
+]
 
 const arrayFromCsv = (value = '') =>
   value
@@ -574,7 +581,9 @@ function App() {
     e.target.value = ''
     try {
       setSavingSection('about')
-      await dispatch(saveProfile({ about: { ...about, avatar: dataUrl }, isFreelanceOpen })).unwrap()
+      await dispatch(
+        saveProfile({ about: sanitizeAbout({ ...about, avatar: dataUrl }), isFreelanceOpen }),
+      ).unwrap()
       setToast('About saved')
     } catch (err) {
       setToast(err.message || 'Unable to save photo')
@@ -586,11 +595,15 @@ function App() {
 
   const prepDates = (value) => (value ? new Date(value).toISOString() : null)
   const prepNumber = (value) => (value === '' || value === null ? undefined : Number(value))
+  const sanitizeAbout = (value = about) => {
+    const { availability, ...rest } = value || {}
+    return rest
+  }
 
   const buildPayload = (section) => {
     switch (section) {
       case 'about':
-        return { about: { ...about }, isFreelanceOpen }
+        return { about: sanitizeAbout(), isFreelanceOpen }
       case 'education':
         return {
           education: education.map((edu) => ({
@@ -686,28 +699,14 @@ function App() {
         }
       />
 
-      <div className="grid two">
-        <label className="field">
-          <span>Availability</span>
-          <select
-            value={about.availability}
-            onChange={(e) => setAbout((prev) => ({ ...prev, availability: e.target.value }))}
-          >
-            <option value="available">Available</option>
-            <option value="busy">Busy</option>
-            <option value="looking">Open to offers</option>
-          </select>
-        </label>
-
-        <label className="field">
-          <span>Headline</span>
-          <input
-            value={about.headline}
-            onChange={(e) => setAbout((prev) => ({ ...prev, headline: e.target.value }))}
-            placeholder="Product-minded full-stack engineer"
-          />
-        </label>
-      </div>
+      <label className="field">
+        <span>Role</span>
+        <input
+          value={about.headline}
+          onChange={(e) => setAbout((prev) => ({ ...prev, headline: e.target.value }))}
+          placeholder="FullStack Developer"
+        />
+      </label>
 
       <label className="field">
         <span>Intro</span>
@@ -2140,15 +2139,22 @@ function App() {
 
             <div className="dashboard-shell">
               <div className="side-nav">
-                {Object.entries(TAB_LABELS).map(([key, label]) => (
-                  <button
-                    key={key}
-                    className={`nav-btn ${activeTab === key ? 'active' : ''}`}
-                    type="button"
-                    onClick={() => setActiveTab(key)}
-                  >
-                    {label}
-                  </button>
+                {TAB_GROUPS.map((group) => (
+                  <div className="nav-group" key={group.key}>
+                    <p className="nav-group-title">{group.title}</p>
+                    <div className="nav-group-list">
+                      {group.tabs.map((key) => (
+                        <button
+                          key={key}
+                          className={`nav-btn ${activeTab === key ? 'active' : ''}`}
+                          type="button"
+                          onClick={() => setActiveTab(key)}
+                        >
+                          {TAB_LABELS[key]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
 

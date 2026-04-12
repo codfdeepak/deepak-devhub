@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
-import HomeContent from '../components/home/HomeContent'
-import PageFrame from '../components/layout/PageFrame'
+import HomeContent from '../components/HomeContent'
+import PageFrame from '../components/PageFrame'
 import { selectProfile, selectProfileError, selectProfileStatus } from '../Redux/slices/profileSlice'
 import { fetchPublicProfile } from '../Redux/thunks/profileThunks'
 

@@ -1,4 +1,4 @@
-import Hero from '../Hero'
+import Hero from './Hero'
 
 const NOW_TIMESTAMP = Date.now()
 
@@ -6,7 +6,6 @@ function HomeContent({ profile, status, error, showHero = true }) {
   const displayName = profile?.user?.fullName || profile?.about?.headline || 'Your Name'
   const summary = profile?.about?.summary || 'Full-stack Specialist crafting robust experiences.'
   const location = profile?.about?.location || 'Remote · Worldwide'
-  const availability = profile?.about?.availability || 'available'
   const avatar = profile?.about?.avatar
   const userMobile = profile?.user?.mobile
 
@@ -53,12 +52,7 @@ function HomeContent({ profile, status, error, showHero = true }) {
 
       <header className="hero" id="about">
         <div className="eyebrow">Portfolio Snapshot</div>
-        <h1>
-          {displayName}{' '}
-          <span className="badge badge-soft">
-            {availability === 'available' ? 'Open for work' : availability}
-          </span>
-        </h1>
+        <h1>{displayName}</h1>
         <p className="lede">{summary}</p>
         <div className="meta">
           <span className="pill">{location}</span>
@@ -78,11 +72,10 @@ function HomeContent({ profile, status, error, showHero = true }) {
             {avatar ? <img src={avatar} alt="Profile avatar" /> : <span>👤</span>}
           </div>
           <div className="id-copy">
-            <p className="muted">{profile?.about?.headline || 'Identity'}</p>
+            <p className="muted">{profile?.about?.headline || 'Role'}</p>
             <h3>{displayName}</h3>
             <p className="muted">{summary}</p>
             <div className="id-meta">
-              <span className="pill micro">{availability}</span>
               {contact.email && <span className="pill micro">✉️ {contact.email}</span>}
               {userMobile && <span className="pill micro">📞 {userMobile}</span>}
             </div>

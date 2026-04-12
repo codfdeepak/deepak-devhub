@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
-import ConsultationModal from '../components/consultation/ConsultationModal'
-import PageFrame from '../components/layout/PageFrame'
+import ConsultationModal from '../components/ConsultationModal'
+import PageFrame from '../components/PageFrame'
 import ecommerceServiceImage from '../assets/ecommerce-service.svg'
 import { selectServices, selectServicesError, selectServicesStatus } from '../Redux/slices/serviceSlice'
 import { fetchPublicServices } from '../Redux/thunks/serviceThunks'
@@ -53,6 +53,17 @@ function Services({ embedded = false }) {
 
   const servicesContent = (
     <>
+      {!embedded && (
+        <section className="panel service-details-top">
+          <div className="service-details-nav">
+            <Link className="pill small profile-back-link" to="/">
+              ← Back to Home
+            </Link>
+            <span className="pill small">Services</span>
+          </div>
+        </section>
+      )}
+
       <section className="panel services-hero-panel">
         <div className="services-hero-copy">
           <h1>Our Services</h1>

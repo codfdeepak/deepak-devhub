@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import PartnerCardList from '../components/partners/PartnerCardList'
-import PageFrame from '../components/layout/PageFrame'
+import { Link } from 'react-router-dom'
+import PartnerCardList from '../components/PartnerCardList'
+import PageFrame from '../components/PageFrame'
 import { selectPartners, selectPartnersError, selectPartnersStatus } from '../Redux/slices/partnerSlice'
 import { fetchPartners } from '../Redux/thunks/partnerThunks'
 
@@ -19,6 +20,15 @@ function Partners() {
 
   return (
     <PageFrame id="partners">
+      <section className="panel partners-panel service-details-top">
+        <div className="service-details-nav">
+          <Link className="pill small profile-back-link" to="/">
+            ← Back to Home
+          </Link>
+          <span className="pill small">Partners</span>
+        </div>
+      </section>
+
       <section className="panel partners-panel">
         <div className="panel-head">
           <h2>Our Partners</h2>

@@ -5,8 +5,8 @@ import {
   selectConsultationSubmitError,
   selectConsultationSubmitStatus,
   selectLastConsultation,
-} from '../../Redux/slices/consultationSlice'
-import { submitConsultationRequest } from '../../Redux/thunks/consultationThunks'
+} from '../Redux/slices/consultationSlice'
+import { submitConsultationRequest } from '../Redux/thunks/consultationThunks'
 
 const emptyForm = {
   name: '',

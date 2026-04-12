@@ -1,22 +1,34 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import './App.css'
-import AppLayout from './components/layout/AppLayout'
-import AboutUs from './pages/AboutUs'
-import ContactUs from './pages/ContactUs'
-import Enquiry from './pages/Enquiry'
-import Home from './pages/Home'
-import Partners from './pages/Partners'
-import ProfileDetails from './pages/ProfileDetails'
-import ServiceDetails from './pages/ServiceDetails'
-import Services from './pages/Services'
+import { Navigate, Route, Routes } from "react-router-dom";
+import "./App.css";
+import AppLayout from "./components/AppLayout";
+import Footer from "./components/Footer";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
+import Enquiry from "./pages/Enquiry";
+import Home from "./pages/Home";
+import Partners from "./pages/Partners";
+import PaymentPolicy from "./pages/PaymentPolicy";
+import ProfileDetails from "./pages/ProfileDetails";
+import ServiceDetails from "./pages/ServiceDetails";
+import Services from "./pages/Services";
+
+function AppShell() {
+  return (
+    <>
+      <AppLayout />
+      <Footer />
+    </>
+  );
+}
 
 function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route element={<AppShell />}>
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/payment-policy" element={<PaymentPolicy />} />
         <Route path="/services/:serviceId" element={<ServiceDetails />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/profile/:userId" element={<ProfileDetails />} />
@@ -25,7 +37,7 @@ function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

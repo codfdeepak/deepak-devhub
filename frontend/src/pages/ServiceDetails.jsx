@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
-import ConsultationModal from '../components/consultation/ConsultationModal'
-import PageFrame from '../components/layout/PageFrame'
+import ConsultationModal from '../components/ConsultationModal'
+import PageFrame from '../components/PageFrame'
 import ecommerceServiceImage from '../assets/ecommerce-service.svg'
 import {
   selectActiveService,

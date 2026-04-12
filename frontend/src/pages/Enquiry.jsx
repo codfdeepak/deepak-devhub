@@ -1,4 +1,4 @@
-import InfoPage from '../components/common/InfoPage'
+import InfoPage from '../components/InfoPage'
 
 function Enquiry() {
   return (
