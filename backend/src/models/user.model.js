@@ -28,6 +28,15 @@ const userSchema = new mongoose.Schema(
       enum: ["owner", "admin", "partner"],
       default: "partner",
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
   },
   { timestamps: true },
 );

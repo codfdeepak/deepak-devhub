@@ -4,6 +4,7 @@ import consultationReducer from './slices/consultationSlice'
 import heroReducer from './slices/heroSlice'
 import profileReducer from './slices/profileSlice'
 import serviceReducer from './slices/serviceSlice'
+import userManagementReducer from './slices/userManagementSlice'
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     hero: heroReducer,
     profile: profileReducer,
     services: serviceReducer,
+    userManagement: userManagementReducer,
   },
 })
 

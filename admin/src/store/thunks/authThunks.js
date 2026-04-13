@@ -45,9 +45,12 @@ export const registerUser = createAsyncThunk(
         method: "POST",
         body: JSON.stringify(payload),
       });
-      if (data.token) {
-        localStorage.setItem("authToken", data.token);
+      if (!data.token) {
+        throw new Error(
+          data?.message || "Signup request sent. Wait for owner approval.",
+        );
       }
+      localStorage.setItem("authToken", data.token);
       return data;
     } catch (err) {
       return rejectWithValue(err.message || "Unable to sign up");
