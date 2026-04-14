@@ -4,6 +4,7 @@ import ConsultationModal from "../components/ConsultationModal";
 import Hero from "../components/Hero";
 import PageFrame from "../components/PageFrame";
 import PartnerMarquee from "../components/PartnerMarquee";
+import TechnologiesSection from "../components/TechnologiesSection";
 import Services from "./Services";
 import {
   selectPartners,
@@ -40,6 +41,7 @@ function Home() {
         error={partnersError}
       />
       <Services embedded />
+      <TechnologiesSection />
 
       {isConsultationOpen && (
         <ConsultationModal

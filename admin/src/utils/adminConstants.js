@@ -109,13 +109,10 @@ export const TAB_LABELS = {
 
 export const PROFILE_SETUP_TABS = [
   "about",
-  "education",
   "skills",
   "experience",
-  "projects",
-  "socials",
-  "contact",
 ];
+export const PARTNER_PROFILE_TABS = ["about", "skills", "experience"];
 export const OWNER_ACCESS_TABS = ["services", "hero", "consultations", "users"];
 
 export const TAB_GROUPS = [
@@ -125,10 +122,18 @@ export const TAB_GROUPS = [
 
 export const getTabGroupsForRole = (role) => {
   const normalizedRole = String(role || "").toLowerCase();
-  const groups = [{ key: "profile-setup", title: "Profile Setup", tabs: PROFILE_SETUP_TABS }];
+  const profileTabs =
+    normalizedRole === "partner" ? PARTNER_PROFILE_TABS : PROFILE_SETUP_TABS;
+  const groups = [
+    { key: "profile-setup", title: "Profile Setup", tabs: profileTabs },
+  ];
 
   if (normalizedRole === "owner") {
-    groups.push({ key: "owner-access", title: "Owner Access", tabs: OWNER_ACCESS_TABS });
+    groups.push({
+      key: "owner-access",
+      title: "Owner Access",
+      tabs: OWNER_ACCESS_TABS,
+    });
   }
 
   return groups;

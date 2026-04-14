@@ -1,5 +1,6 @@
 import logoDark from "../assets/logo1.png";
 import logoLight from "../assets/logo2.png";
+import SignupApprovalNotice from "../components/SignupApprovalNotice";
 
 function AuthPage({
   mode,
@@ -13,6 +14,7 @@ function AuthPage({
   handleSignup,
   isLoading,
   error,
+  signupNotice,
   goToLogin,
   goToSignup,
 }) {
@@ -101,7 +103,11 @@ function AuthPage({
           </form>
         )}
 
-        {mode === "signup" && (
+        {signupNotice && (
+          <SignupApprovalNotice message={signupNotice} onGoToLogin={goToLogin} />
+        )}
+
+        {mode === "signup" && !signupNotice && (
           <form className="form compact" onSubmit={handleSignup}>
             <label className="field">
               <span>Full name</span>

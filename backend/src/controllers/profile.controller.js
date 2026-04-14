@@ -44,7 +44,7 @@ const getPublicProfile = async (req, res) => {
   try {
     const { userId } = req.params
     const query = userId ? { user: userId } : {}
-    const profile = await Profile.findOne(query).populate('user', 'fullName mobile')
+    const profile = await Profile.findOne(query).populate('user', 'fullName mobile role')
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' })
     }
@@ -58,7 +58,7 @@ const getPublicProfile = async (req, res) => {
 const getPartnersProfiles = async (_req, res) => {
   try {
     const partnerDocs = await Profile.find({})
-      .select('user about.headline about.avatar skills experience')
+      .select('user about.headline about.avatar skills totalExperienceYears')
       .populate('user', 'fullName role')
       .sort({ updatedAt: -1 })
 

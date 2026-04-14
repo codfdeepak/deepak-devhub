@@ -11,6 +11,7 @@ import PaymentPolicy from "./pages/PaymentPolicy";
 import ProfileDetails from "./pages/ProfileDetails";
 import ServiceDetails from "./pages/ServiceDetails";
 import Services from "./pages/Services";
+import Technologies from "./pages/Technologies";
 
 function AppShell() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/payment-policy" element={<PaymentPolicy />} />
         <Route path="/services/:serviceId" element={<ServiceDetails />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/technologies" element={<Technologies />} />
         <Route path="/profile/:userId" element={<ProfileDetails />} />
         <Route path="/enquiry" element={<Enquiry />} />
         <Route path="/contact-us" element={<ContactUs />} />

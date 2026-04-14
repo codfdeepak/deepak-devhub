@@ -5,6 +5,7 @@ import logoLight from "../assets/logo2.png";
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", end: true },
+  { to: "/technologies", label: "Technologies" },
   { to: "/services", label: "Services" },
   { to: "/payment-policy", label: "Payment Policy" },
   { to: "/partners", label: "Partners" },

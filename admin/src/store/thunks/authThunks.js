@@ -3,12 +3,14 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5500";
 
 const request = async (path, options = {}) => {
+  const mergedHeaders = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
     ...options,
+    headers: mergedHeaders,
   });
 
   const data = await res.json().catch(() => ({}));
@@ -45,13 +47,13 @@ export const registerUser = createAsyncThunk(
         method: "POST",
         body: JSON.stringify(payload),
       });
-      if (!data.token) {
-        throw new Error(
-          data?.message || "Signup request sent. Wait for owner approval.",
-        );
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
       }
-      localStorage.setItem("authToken", data.token);
-      return data;
+      return {
+        ...data,
+        pendingApproval: !data.token,
+      };
     } catch (err) {
       return rejectWithValue(err.message || "Unable to sign up");
     }
@@ -73,6 +75,28 @@ export const fetchMe = createAsyncThunk(
     } catch (err) {
       localStorage.removeItem("authToken");
       return rejectWithValue(err.message || "Unable to fetch session");
+    }
+  },
+);
+
+export const updateMyName = createAsyncThunk(
+  "auth/updateMyName",
+  async (fullName, { getState, rejectWithValue }) => {
+    try {
+      const token =
+        getState().auth.token ||
+        (typeof window !== "undefined" ? localStorage.getItem("authToken") : null);
+      if (!token) throw new Error("Not authenticated");
+
+      const data = await request("/api/auth/me", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fullName }),
+      });
+
+      return data.user;
+    } catch (err) {
+      return rejectWithValue(err.message || "Unable to update name");
     }
   },
 );

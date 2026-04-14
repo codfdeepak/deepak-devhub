@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import {
   deleteManagedUser,
   fetchManagedUsers,
+  resetManagedUserPassword,
   updateManagedUserApproval,
   updateManagedUserStatus,
 } from '../thunks/userManagementThunks'
@@ -73,6 +74,22 @@ const userManagementSlice = createSlice({
       .addCase(deleteManagedUser.rejected, (state, action) => {
         state.status = 'failed'
         state.error = action.payload || 'Unable to delete user'
+      })
+      .addCase(resetManagedUserPassword.pending, (state) => {
+        state.status = 'loading'
+        state.error = null
+      })
+      .addCase(resetManagedUserPassword.fulfilled, (state, action) => {
+        state.status = 'succeeded'
+        if (action.payload?.id) {
+          state.items = state.items.map((item) =>
+            item.id === action.payload.id ? action.payload : item,
+          )
+        }
+      })
+      .addCase(resetManagedUserPassword.rejected, (state, action) => {
+        state.status = 'failed'
+        state.error = action.payload || 'Unable to reset password'
       })
   },
 })

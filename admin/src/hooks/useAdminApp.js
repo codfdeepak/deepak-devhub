@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearError, logout } from "../store/slices/authSlice";
-import { fetchMe, loginUser, registerUser } from "../store/thunks/authThunks";
+import {
+  fetchMe,
+  loginUser,
+  registerUser,
+  updateMyName,
+} from "../store/thunks/authThunks";
 import {
   createOwnerHeroSlide,
   deleteOwnerHeroSlide,
@@ -19,6 +24,7 @@ import {
 import {
   deleteManagedUser,
   fetchManagedUsers,
+  resetManagedUserPassword,
   updateManagedUserApproval,
   updateManagedUserStatus,
 } from "../store/thunks/userManagementThunks";
@@ -26,14 +32,12 @@ import {
   defaultAbout,
   emptyEducation,
   emptySkill,
-  emptyExperience,
   emptyProject,
   emptyService,
   emptyHeroSlide,
   emptySocial,
   defaultContact,
   TAB_LABELS,
-  OWNER_ACCESS_TABS,
   getTabGroupsForRole,
   normalizeServiceForm,
   normalizeHeroForm,
@@ -43,7 +47,7 @@ export const useAdminApp = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { status, error, user } = useSelector((state) => state.auth);
+  const { status, error, user, signupNotice } = useSelector((state) => state.auth);
   const {
     profile,
     status: profileStatus,
@@ -126,7 +130,7 @@ export const useAdminApp = () => {
   const [about, setAbout] = useState(defaultAbout);
   const [education, setEducation] = useState([emptyEducation()]);
   const [skills, setSkills] = useState([emptySkill()]);
-  const [experience, setExperience] = useState([emptyExperience()]);
+  const [totalExperienceYears, setTotalExperienceYears] = useState("");
   const [projects, setProjects] = useState([emptyProject()]);
   const [services, setServices] = useState([emptyService()]);
   const [heroSlides, setHeroSlides] = useState([emptyHeroSlide()]);
@@ -137,11 +141,18 @@ export const useAdminApp = () => {
   const [toast, setToast] = useState("");
   const [serviceDraftLoaded, setServiceDraftLoaded] = useState(false);
   const [heroDraftLoaded, setHeroDraftLoaded] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState("");
+  const [userPasswordDrafts, setUserPasswordDrafts] = useState({});
+  const [showUserPasswords, setShowUserPasswords] = useState({});
 
   const userRole = String(user?.role || "").toLowerCase();
   const isOwner = userRole === "owner";
   const canManageServices = userRole === "owner" || userRole === "admin";
   const tabGroups = useMemo(() => getTabGroupsForRole(userRole), [userRole]);
+  const allowedTabs = useMemo(
+    () => tabGroups.flatMap((group) => group.tabs),
+    [tabGroups],
+  );
 
   useEffect(() => {
     if (!profile) return;
@@ -157,10 +168,10 @@ export const useAdminApp = () => {
         ? profile.skills.map((item) => ({ ...emptySkill(), ...item }))
         : [emptySkill()],
     );
-    setExperience(
-      profile.experience && profile.experience.length
-        ? profile.experience.map((item) => ({ ...emptyExperience(), ...item }))
-        : [emptyExperience()],
+    setTotalExperienceYears(
+      profile.totalExperienceYears === 0
+        ? "0"
+        : String(profile.totalExperienceYears || ""),
     );
     setProjects(
       profile.projects && profile.projects.length
@@ -192,11 +203,10 @@ export const useAdminApp = () => {
   }, [dispatch, user, isOwner]);
 
   useEffect(() => {
-    if (isOwner) return;
-    if (OWNER_ACCESS_TABS.includes(activeTab)) {
+    if (!allowedTabs.includes(activeTab)) {
       setActiveTab("about");
     }
-  }, [isOwner, activeTab]);
+  }, [activeTab, allowedTabs, isOwner]);
 
   useEffect(() => {
     if (!canManageServices) {
@@ -245,6 +255,15 @@ export const useAdminApp = () => {
   };
 
   const sectionTitle = useMemo(() => TAB_LABELS[activeTab], [activeTab]);
+  const normalizedCurrentName = String(user?.fullName || "").trim();
+  const normalizedDisplayNameDraft = String(displayNameDraft || "").trim();
+  const canSaveDisplayName =
+    normalizedDisplayNameDraft.length >= 2 &&
+    normalizedDisplayNameDraft !== normalizedCurrentName;
+
+  useEffect(() => {
+    setDisplayNameDraft(user?.fullName || "");
+  }, [user?.fullName]);
 
   const fileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -583,13 +602,7 @@ export const useAdminApp = () => {
         };
       case "experience":
         return {
-          experience: experience.map((exp) => ({
-            ...exp,
-            startDate: prepDates(exp.startDate),
-            endDate: exp.currentlyWorking ? null : prepDates(exp.endDate),
-            achievements: exp.achievements || [],
-            tech: exp.tech || [],
-          })),
+          totalExperienceYears: prepNumber(totalExperienceYears) ?? 0,
         };
       case "projects":
         return {
@@ -689,6 +702,63 @@ export const useAdminApp = () => {
     }
   };
 
+  const setManagedUserPasswordDraft = (userId, value) => {
+    if (!userId) return;
+    setUserPasswordDrafts((prev) => ({ ...prev, [userId]: value }));
+  };
+
+  const toggleManagedUserPasswordVisibility = (userId) => {
+    if (!userId) return;
+    setShowUserPasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const handleResetManagedUserPassword = async (targetUser) => {
+    const userId = targetUser?.id;
+    if (!userId) return;
+    const newPassword = String(userPasswordDrafts[userId] || "").trim();
+
+    if (newPassword.length < 8) {
+      setToast("Password must be at least 8 characters");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    const tracker = `user-password-${userId}`;
+    setSavingSection(tracker);
+    try {
+      await dispatch(resetManagedUserPassword({ userId, newPassword })).unwrap();
+      setUserPasswordDrafts((prev) => ({ ...prev, [userId]: "" }));
+      setShowUserPasswords((prev) => ({ ...prev, [userId]: false }));
+      setToast("Password reset successfully");
+    } catch (err) {
+      setToast(err.message || "Unable to reset password");
+    } finally {
+      setSavingSection(null);
+      setTimeout(() => setToast(""), 2200);
+    }
+  };
+
+  const handleSaveDisplayName = async () => {
+    if (!canSaveDisplayName) {
+      if (normalizedDisplayNameDraft.length < 2) {
+        setToast("Name must be at least 2 characters");
+        setTimeout(() => setToast(""), 2200);
+      }
+      return;
+    }
+
+    setSavingSection("display-name");
+    try {
+      await dispatch(updateMyName(normalizedDisplayNameDraft)).unwrap();
+      setToast("Name updated");
+    } catch (err) {
+      setToast(err.message || "Unable to update name");
+    } finally {
+      setSavingSection(null);
+      setTimeout(() => setToast(""), 2200);
+    }
+  };
+
   return {
     dispatch,
     navigate,
@@ -696,6 +766,7 @@ export const useAdminApp = () => {
     user,
     status,
     error,
+    signupNotice,
     profile,
     profileStatus,
     profileError,
@@ -710,6 +781,7 @@ export const useAdminApp = () => {
     managedUsersError,
     isOwner,
     tabGroups,
+    allowedTabs,
     loginData,
     setLoginData,
     signupData,
@@ -728,8 +800,8 @@ export const useAdminApp = () => {
     setEducation,
     skills,
     setSkills,
-    experience,
-    setExperience,
+    totalExperienceYears,
+    setTotalExperienceYears,
     projects,
     setProjects,
     services,
@@ -747,6 +819,11 @@ export const useAdminApp = () => {
     setToast,
     serviceDraftLoaded,
     heroDraftLoaded,
+    displayNameDraft,
+    setDisplayNameDraft,
+    canSaveDisplayName,
+    userPasswordDrafts,
+    showUserPasswords,
     canManageServices,
     sectionTitle,
     addItem,
@@ -769,6 +846,10 @@ export const useAdminApp = () => {
     handleToggleUserStatus,
     handleDeleteUser,
     handleUpdateUserApproval,
+    setManagedUserPasswordDraft,
+    toggleManagedUserPasswordVisibility,
+    handleResetManagedUserPassword,
+    handleSaveDisplayName,
     fetchManagedUsers,
   };
 };

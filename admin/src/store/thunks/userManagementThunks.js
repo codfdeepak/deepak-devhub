@@ -99,3 +99,23 @@ export const deleteManagedUser = createAsyncThunk(
     }
   },
 )
+
+export const resetManagedUserPassword = createAsyncThunk(
+  'users/resetManagedUserPassword',
+  async ({ userId, newPassword }, { getState, rejectWithValue }) => {
+    try {
+      const token = getAuthToken(getState())
+      if (!token) throw new Error('Not authenticated')
+
+      const data = await authedRequest(`/api/auth/users/${userId}/password`, {
+        method: 'PATCH',
+        token,
+        body: JSON.stringify({ newPassword }),
+      })
+
+      return data.user
+    } catch (err) {
+      return rejectWithValue(err.message || 'Unable to reset password')
+    }
+  },
+)

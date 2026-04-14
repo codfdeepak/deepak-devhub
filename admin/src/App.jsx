@@ -1,36 +1,42 @@
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { getSectionRenderers } from './components/SectionRenderers'
-import { useAdminApp } from './hooks/useAdminApp'
-import AuthPage from './pages/AuthPage'
-import DashboardPage from './pages/DashboardPage'
-import { TAB_LABELS } from './utils/adminConstants'
-import { fetchOwnerHeroSlides } from './store/thunks/heroThunks'
-import { fetchOwnerServices } from './store/thunks/serviceThunks'
-import './App.css'
-import './index.css'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { getSectionRenderers } from "./components/SectionRenderers";
+import { useAdminApp } from "./hooks/useAdminApp";
+import AuthPage from "./pages/AuthPage";
+import DashboardPage from "./pages/DashboardPage";
+import { TAB_LABELS } from "./utils/adminConstants";
+import { fetchOwnerHeroSlides } from "./store/thunks/heroThunks";
+import { fetchOwnerServices } from "./store/thunks/serviceThunks";
+import "./App.css";
+import "./index.css";
 
 function AppShell({ children, isAuthView }) {
   return (
-    <div className={`page${isAuthView ? ' auth-mode' : ''}`}>
+    <div className={`page${isAuthView ? " auth-mode" : ""}`}>
       <div className="glow glow-a" />
       <div className="glow glow-b" />
       <div className="glow glow-c" />
       <div className="content-shell">{children}</div>
     </div>
-  )
+  );
 }
 
 function App() {
-  const admin = useAdminApp()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const isAuthView = location.pathname !== '/dashboard'
+  const admin = useAdminApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAuthView = location.pathname !== "/dashboard";
 
   const renderServicesTabs = getSectionRenderers({
     ...admin,
     fetchOwnerServices,
     fetchOwnerHeroSlides,
-  })
+  });
 
   return (
     <AppShell isAuthView={isAuthView}>
@@ -53,8 +59,9 @@ function App() {
                 handleSignup={admin.handleSignup}
                 isLoading={admin.isLoading}
                 error={admin.error}
-                goToLogin={() => navigate('/login')}
-                goToSignup={() => navigate('/signup')}
+                signupNotice={admin.signupNotice}
+                goToLogin={() => navigate("/login")}
+                goToSignup={() => navigate("/signup")}
               />
             )
           }
@@ -77,8 +84,9 @@ function App() {
                 handleSignup={admin.handleSignup}
                 isLoading={admin.isLoading}
                 error={admin.error}
-                goToLogin={() => navigate('/login')}
-                goToSignup={() => navigate('/signup')}
+                signupNotice={admin.signupNotice}
+                goToLogin={() => navigate("/login")}
+                goToSignup={() => navigate("/signup")}
               />
             )
           }
@@ -104,16 +112,26 @@ function App() {
                 profile={admin.profile}
                 toast={admin.toast}
                 renderServicesTabs={renderServicesTabs}
+                displayNameDraft={admin.displayNameDraft}
+                setDisplayNameDraft={admin.setDisplayNameDraft}
+                handleSaveDisplayName={admin.handleSaveDisplayName}
+                canSaveDisplayName={admin.canSaveDisplayName}
+                savingSection={admin.savingSection}
               />
             ) : (
               <Navigate to="/login" replace />
             )
           }
         />
-        <Route path="*" element={<Navigate to={admin.user ? '/dashboard' : '/login'} replace />} />
+        <Route
+          path="*"
+          element={
+            <Navigate to={admin.user ? "/dashboard" : "/login"} replace />
+          }
+        />
       </Routes>
     </AppShell>
-  )
+  );
 }
 
-export default App
+export default App;

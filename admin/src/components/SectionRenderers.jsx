@@ -2,7 +2,6 @@ import ConsultationsPanel from './ConsultationsPanel'
 import {
   arrayFromCsv,
   emptyEducation,
-  emptyExperience,
   emptyHeroSlide,
   emptyProject,
   emptyService,
@@ -27,8 +26,8 @@ export const getSectionRenderers = (adminData) => {
     setEducation,
     skills,
     setSkills,
-    experience,
-    setExperience,
+    totalExperienceYears,
+    setTotalExperienceYears,
     projects,
     setProjects,
     services,
@@ -77,26 +76,19 @@ export const getSectionRenderers = (adminData) => {
     handleToggleUserStatus,
     handleDeleteUser,
     handleUpdateUserApproval,
+    userPasswordDrafts,
+    showUserPasswords,
+    setManagedUserPasswordDraft,
+    toggleManagedUserPasswordVisibility,
+    handleResetManagedUserPassword,
   } = adminData
 
   return {
     about: () => (
       <div className="section">
-        <SectionHeader
-          title="About you"
-          cta={
-            <button
-              className="primary"
-              type="button"
-              onClick={() => handleSaveSection('about')}
-              disabled={savingSection === 'about'}
-            >
-              {savingSection === 'about' ? 'Saving…' : 'Save About'}
-            </button>
-          }
-        />
+        <SectionHeader title="About you" />
         <label className="field">
-          <span>Role</span>
+          <span>Designation</span>
           <input
             value={about.headline}
             onChange={(e) => setAbout((prev) => ({ ...prev, headline: e.target.value }))}
@@ -112,42 +104,22 @@ export const getSectionRenderers = (adminData) => {
             placeholder="Short, 3-4 sentence story about you"
           />
         </label>
-        <div className="grid two">
-          <label className="field">
-            <span>Location</span>
-            <input
-              value={about.location}
-              onChange={(e) => setAbout((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder="Delhi, India"
-            />
-          </label>
-          <label className="field">
-            <span>Website</span>
-            <input
-              value={about.website}
-              onChange={(e) => setAbout((prev) => ({ ...prev, website: e.target.value }))}
-              placeholder="https://portfolio.com"
-            />
-          </label>
-        </div>
-        <div className="grid two">
-          <label className="field">
-            <span>Profile photo URL</span>
-            <input
-              value={about.avatar}
-              onChange={(e) => setAbout((prev) => ({ ...prev, avatar: e.target.value }))}
-              placeholder="https://.../me.jpg"
-            />
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={isFreelanceOpen}
-              onChange={(e) => setIsFreelanceOpen(e.target.checked)}
-            />
-            <span>Freelance inquiries open</span>
-          </label>
-        </div>
+        <label className="field">
+          <span>Image URL</span>
+          <input
+            value={about.avatar}
+            onChange={(e) => setAbout((prev) => ({ ...prev, avatar: e.target.value }))}
+            placeholder="https://.../me.jpg"
+          />
+        </label>
+        <button
+          className="primary"
+          type="button"
+          onClick={() => handleSaveSection('about')}
+          disabled={savingSection === 'about'}
+        >
+          {savingSection === 'about' ? 'Saving…' : 'Save About'}
+        </button>
       </div>
     ),
     education: () => (
@@ -272,19 +244,7 @@ export const getSectionRenderers = (adminData) => {
     ),
     skills: () => (
       <div className="section">
-        <SectionHeader
-          title="Skills"
-          cta={
-            <button
-              className="primary"
-              type="button"
-              onClick={() => handleSaveSection('skills')}
-              disabled={savingSection === 'skills'}
-            >
-              {savingSection === 'skills' ? 'Saving…' : 'Save Skills'}
-            </button>
-          }
-        />
+        <SectionHeader title="Skills" />
         <div className="stack">
           {skills.map((skill, idx) => (
             <div className="item-card" key={`skill-${idx}`}>
@@ -299,9 +259,9 @@ export const getSectionRenderers = (adminData) => {
                   Remove
                 </button>
               </div>
-              <div className="grid three">
+              <div className="grid two">
                 <label className="field">
-                  <span>Name</span>
+                  <span>Skill</span>
                   <input
                     value={skill.name}
                     onChange={(e) => handleArrayField(setSkills, skills, idx, 'name', e.target.value)}
@@ -309,52 +269,12 @@ export const getSectionRenderers = (adminData) => {
                   />
                 </label>
                 <label className="field">
-                  <span>Level</span>
-                  <select
-                    value={skill.level}
-                    onChange={(e) => handleArrayField(setSkills, skills, idx, 'level', e.target.value)}
-                  >
-                    <option value="novice">Novice</option>
-                    <option value="junior">Junior</option>
-                    <option value="mid">Mid</option>
-                    <option value="senior">Senior</option>
-                    <option value="lead">Lead</option>
-                    <option value="expert">Expert</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Years</span>
+                  <span>Years of experience</span>
                   <input
                     type="number"
                     value={skill.years}
                     onChange={(e) => handleArrayField(setSkills, skills, idx, 'years', e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="grid two">
-                <label className="field">
-                  <span>Stack</span>
-                  <select
-                    value={skill.stack}
-                    onChange={(e) => handleArrayField(setSkills, skills, idx, 'stack', e.target.value)}
-                  >
-                    <option value="frontend">Frontend</option>
-                    <option value="backend">Backend</option>
-                    <option value="fullstack">Fullstack</option>
-                    <option value="mobile">Mobile</option>
-                    <option value="devops">DevOps</option>
-                    <option value="data">Data</option>
-                    <option value="product">Product</option>
-                    <option value="design">Design</option>
-                    <option value="qa">QA</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Keywords (comma separated)</span>
-                  <input
-                    value={(skill.keywords || []).join(', ')}
-                    onChange={(e) => handleArrayField(setSkills, skills, idx, 'keywords', arrayFromCsv(e.target.value))}
+                    placeholder="2"
                   />
                 </label>
               </div>
@@ -364,123 +284,37 @@ export const getSectionRenderers = (adminData) => {
         <button className="ghost" type="button" onClick={() => addItem(setSkills, emptySkill)}>
           + Add skill
         </button>
+        <button
+          className="primary"
+          type="button"
+          onClick={() => handleSaveSection('skills')}
+          disabled={savingSection === 'skills'}
+        >
+          {savingSection === 'skills' ? 'Saving…' : 'Save Skills'}
+        </button>
       </div>
     ),
     experience: () => (
       <div className="section">
-        <SectionHeader
-          title="Experience"
-          cta={
-            <button
-              className="primary"
-              type="button"
-              onClick={() => handleSaveSection('experience')}
-              disabled={savingSection === 'experience'}
-            >
-              {savingSection === 'experience' ? 'Saving…' : 'Save Experience'}
-            </button>
-          }
-        />
-        <div className="stack">
-          {experience.map((exp, idx) => (
-            <div className="item-card" key={`exp-${idx}`}>
-              <div className="item-top">
-                <strong>Role {idx + 1}</strong>
-                <button
-                  className="link-btn"
-                  type="button"
-                  onClick={() => removeItem(setExperience, experience, idx)}
-                  disabled={experience.length === 1}
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="grid two">
-                <label className="field">
-                  <span>Company</span>
-                  <input
-                    value={exp.company}
-                    onChange={(e) => handleArrayField(setExperience, experience, idx, 'company', e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Title</span>
-                  <input
-                    value={exp.title}
-                    onChange={(e) => handleArrayField(setExperience, experience, idx, 'title', e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="grid three">
-                <label className="field">
-                  <span>Employment type</span>
-                  <select
-                    value={exp.employmentType}
-                    onChange={(e) => handleArrayField(setExperience, experience, idx, 'employmentType', e.target.value)}
-                  >
-                    <option value="full-time">Full-time</option>
-                    <option value="part-time">Part-time</option>
-                    <option value="contract">Contract</option>
-                    <option value="freelance">Freelance</option>
-                    <option value="intern">Intern</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Start date</span>
-                  <input
-                    type="date"
-                    value={exp.startDate?.slice(0, 10) || ''}
-                    onChange={(e) => handleArrayField(setExperience, experience, idx, 'startDate', e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>End date</span>
-                  <input
-                    type="date"
-                    value={exp.endDate?.slice(0, 10) || ''}
-                    onChange={(e) => handleArrayField(setExperience, experience, idx, 'endDate', e.target.value)}
-                    disabled={exp.currentlyWorking}
-                  />
-                </label>
-              </div>
-              <label className="field">
-                <span>Location</span>
-                <input
-                  value={exp.location}
-                  onChange={(e) => handleArrayField(setExperience, experience, idx, 'location', e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Achievements (comma separated)</span>
-                <input
-                  value={(exp.achievements || []).join(', ')}
-                  onChange={(e) =>
-                    handleArrayField(setExperience, experience, idx, 'achievements', arrayFromCsv(e.target.value))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Tech stack (comma separated)</span>
-                <input
-                  value={(exp.tech || []).join(', ')}
-                  onChange={(e) => handleArrayField(setExperience, experience, idx, 'tech', arrayFromCsv(e.target.value))}
-                />
-              </label>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={exp.currentlyWorking}
-                  onChange={(e) =>
-                    handleArrayField(setExperience, experience, idx, 'currentlyWorking', e.target.checked)
-                  }
-                />
-                <span>Currently working here</span>
-              </label>
-            </div>
-          ))}
-        </div>
-        <button className="ghost" type="button" onClick={() => addItem(setExperience, emptyExperience)}>
-          + Add experience
+        <SectionHeader title="Experience" />
+        <label className="field">
+          <span>Total years of experience</span>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={totalExperienceYears}
+            onChange={(e) => setTotalExperienceYears(e.target.value)}
+            placeholder="2"
+          />
+        </label>
+        <button
+          className="primary"
+          type="button"
+          onClick={() => handleSaveSection('experience')}
+          disabled={savingSection === 'experience'}
+        >
+          {savingSection === 'experience' ? 'Saving…' : 'Save Experience'}
         </button>
       </div>
     ),
@@ -667,23 +501,33 @@ export const getSectionRenderers = (adminData) => {
         {canManageServices && ownerServicesError && <p className="error">{ownerServicesError}</p>}
         <div className="stack">
           {services.map((svc, idx) => (
-            <div className="item-card" key={`svc-${idx}`}>
-              <div className="item-top">
-                <strong>{svc._id ? `Service ${idx + 1}` : 'New Service Draft'}</strong>
-                <button
-                  className="link-btn"
-                  type="button"
-                  onClick={() => handleDeleteService(svc, idx)}
-                  disabled={
-                    !canManageServices ||
-                    savingSection === `service-delete-${svc._id}` ||
-                    savingSection === `service-${svc._id || idx}`
-                  }
-                >
-                  {svc._id ? 'Delete' : 'Remove'}
-                </button>
-              </div>
-              <div className="grid three">
+            <details className="accordion" key={`svc-${idx}`} open={idx === 0}>
+              <summary className="accordion-summary">
+                <span className="accordion-title">
+                  {svc._id ? `Service ${idx + 1}` : `New Service ${idx + 1}`}
+                </span>
+                <span className="accordion-meta">
+                  {svc.name ? svc.name : 'Untitled'}
+                  {svc.isActive === false ? ' · Inactive' : ' · Active'}
+                </span>
+              </summary>
+              <div className="item-card accordion-body">
+                <div className="item-top">
+                  <strong>{svc._id ? `Service ${idx + 1}` : 'New Service Draft'}</strong>
+                  <button
+                    className="link-btn"
+                    type="button"
+                    onClick={() => handleDeleteService(svc, idx)}
+                    disabled={
+                      !canManageServices ||
+                      savingSection === `service-delete-${svc._id}` ||
+                      savingSection === `service-${svc._id || idx}`
+                    }
+                  >
+                    {svc._id ? 'Delete' : 'Remove'}
+                  </button>
+                </div>
+                <div className="grid three">
                 <label className="field">
                   <span>Service name</span>
                   <input
@@ -825,7 +669,8 @@ export const getSectionRenderers = (adminData) => {
                       : 'Submit Service'}
                 </button>
               </div>
-            </div>
+              </div>
+            </details>
           ))}
         </div>
         <button
@@ -868,23 +713,33 @@ export const getSectionRenderers = (adminData) => {
         {canManageServices && ownerHeroError && <p className="error">{ownerHeroError}</p>}
         <div className="stack">
           {heroSlides.map((slide, idx) => (
-            <div className="item-card" key={`hero-${idx}`}>
-              <div className="item-top">
-                <strong>{slide._id ? `Hero Slide ${idx + 1}` : 'New Hero Slide Draft'}</strong>
-                <button
-                  className="link-btn"
-                  type="button"
-                  onClick={() => handleDeleteHeroSlide(slide, idx)}
-                  disabled={
-                    !canManageServices ||
-                    savingSection === `hero-delete-${slide._id}` ||
-                    savingSection === `hero-${slide._id || idx}`
-                  }
-                >
-                  {slide._id ? 'Delete' : 'Remove'}
-                </button>
-              </div>
-              <div className="grid three">
+            <details className="accordion" key={`hero-${idx}`} open={idx === 0}>
+              <summary className="accordion-summary">
+                <span className="accordion-title">
+                  {slide._id ? `Hero Slide ${idx + 1}` : `New Hero ${idx + 1}`}
+                </span>
+                <span className="accordion-meta">
+                  {slide.title ? slide.title : 'Untitled'}
+                  {slide.isActive === false ? ' · Inactive' : ' · Active'}
+                </span>
+              </summary>
+              <div className="item-card accordion-body">
+                <div className="item-top">
+                  <strong>{slide._id ? `Hero Slide ${idx + 1}` : 'New Hero Slide Draft'}</strong>
+                  <button
+                    className="link-btn"
+                    type="button"
+                    onClick={() => handleDeleteHeroSlide(slide, idx)}
+                    disabled={
+                      !canManageServices ||
+                      savingSection === `hero-delete-${slide._id}` ||
+                      savingSection === `hero-${slide._id || idx}`
+                    }
+                  >
+                    {slide._id ? 'Delete' : 'Remove'}
+                  </button>
+                </div>
+                <div className="grid three">
                 <label className="field">
                   <span>Title</span>
                   <input
@@ -962,7 +817,8 @@ export const getSectionRenderers = (adminData) => {
                       : 'Submit Hero'}
                 </button>
               </div>
-            </div>
+              </div>
+            </details>
           ))}
         </div>
         <button
@@ -1052,6 +908,36 @@ export const getSectionRenderers = (adminData) => {
                   </div>
                 )}
                 <div className="service-actions user-actions">
+                  {!isOwnerAccount && (
+                    <div className="user-password-row">
+                      <input
+                        type={showUserPasswords[managedUser.id] ? 'text' : 'password'}
+                        value={userPasswordDrafts[managedUser.id] || ''}
+                        onChange={(e) =>
+                          setManagedUserPasswordDraft(managedUser.id, e.target.value)
+                        }
+                        placeholder="Set new password"
+                        disabled={savingSection === `user-password-${managedUser.id}`}
+                      />
+                      <button
+                        className="ghost"
+                        type="button"
+                        onClick={() => toggleManagedUserPasswordVisibility(managedUser.id)}
+                      >
+                        {showUserPasswords[managedUser.id] ? '🙈' : '👁'}
+                      </button>
+                      <button
+                        className="primary"
+                        type="button"
+                        onClick={() => handleResetManagedUserPassword(managedUser)}
+                        disabled={savingSection === `user-password-${managedUser.id}`}
+                      >
+                        {savingSection === `user-password-${managedUser.id}`
+                          ? 'Resetting…'
+                          : 'Reset Password'}
+                      </button>
+                    </div>
+                  )}
                   <button
                     className="ghost"
                     type="button"

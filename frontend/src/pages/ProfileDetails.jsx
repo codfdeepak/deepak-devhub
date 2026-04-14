@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
-import HomeContent from '../components/HomeContent'
 import PageFrame from '../components/PageFrame'
+import PublicProfileSnapshot from '../components/PublicProfileSnapshot'
 import { selectProfile, selectProfileError, selectProfileStatus } from '../Redux/slices/profileSlice'
 import { fetchPublicProfile } from '../Redux/thunks/profileThunks'
 
@@ -52,7 +52,7 @@ function ProfileDetails() {
         </section>
       )}
 
-      {!showErrorPanel && profile && <HomeContent profile={profile} status={status} error={error} showHero={false} />}
+      {!showErrorPanel && profile && <PublicProfileSnapshot profile={profile} />}
     </PageFrame>
   )
 }
