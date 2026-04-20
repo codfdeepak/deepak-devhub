@@ -3,6 +3,7 @@ import {
   arrayFromCsv,
   emptyEducation,
   emptyHeroSlide,
+  emptyOwnerProject,
   emptyProject,
   emptyService,
   emptySkill,
@@ -32,6 +33,8 @@ export const getSectionRenderers = (adminData) => {
     setProjects,
     services,
     setServices,
+    ownerProjects,
+    setOwnerProjects,
     heroSlides,
     setHeroSlides,
     socials,
@@ -46,15 +49,19 @@ export const getSectionRenderers = (adminData) => {
     ownerServicesError,
     ownerHeroStatus,
     ownerHeroError,
+    ownerProjectsStatus,
+    ownerProjectsError,
     managedUsers,
     managedUsersStatus,
     managedUsersError,
     user,
     serviceDraftLoaded,
+    ownerProjectDraftLoaded,
     heroDraftLoaded,
     isOwner,
     dispatch,
     fetchOwnerServices,
+    fetchOwnerProjects,
     fetchOwnerHeroSlides,
     fetchManagedUsers,
     addItem,
@@ -70,6 +77,8 @@ export const getSectionRenderers = (adminData) => {
     removeServiceBulletPoint,
     handleSaveService,
     handleDeleteService,
+    handleSaveOwnerProject,
+    handleDeleteOwnerProject,
     handleSaveHeroSlide,
     handleDeleteHeroSlide,
     handleSaveSection,
@@ -828,6 +837,174 @@ export const getSectionRenderers = (adminData) => {
           disabled={!canManageServices || !heroDraftLoaded}
         >
           + Add hero slide
+        </button>
+      </div>
+    ),
+    ownerProjects: () => (
+      <div className="section">
+        <SectionHeader
+          title="Projects"
+          cta={
+            canManageServices ? (
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => dispatch(fetchOwnerProjects())}
+                disabled={ownerProjectsStatus === 'loading'}
+              >
+                {ownerProjectsStatus === 'loading' ? 'Refreshing…' : 'Refresh'}
+              </button>
+            ) : null
+          }
+        />
+        {!canManageServices && (
+          <p className="muted">
+            Only owner/admin accounts can add, update, or delete projects from this dashboard.
+          </p>
+        )}
+        {canManageServices && (
+          <p className="hint">
+            Add project name, type, link, details, technologies, display order, and current status to publish project cards on website.
+          </p>
+        )}
+        {canManageServices && ownerProjectsError && <p className="error">{ownerProjectsError}</p>}
+        <div className="stack">
+          {ownerProjects.map((project, idx) => (
+            <details className="accordion" key={`owner-project-${idx}`} open={idx === 0}>
+              <summary className="accordion-summary">
+                <span className="accordion-title">
+                  {project._id ? `Project ${idx + 1}` : `New Project ${idx + 1}`}
+                </span>
+                <span className="accordion-meta">
+                  {project.name ? project.name : 'Untitled'}
+                  {project.status === 'delivered' ? ' · Delivered' : ' · Live'}
+                </span>
+              </summary>
+              <div className="item-card accordion-body">
+                <div className="item-top">
+                  <strong>{project._id ? `Project ${idx + 1}` : 'New Project Draft'}</strong>
+                  <button
+                    className="link-btn"
+                    type="button"
+                    onClick={() => handleDeleteOwnerProject(project, idx)}
+                    disabled={
+                      !canManageServices ||
+                      savingSection === `owner-project-delete-${project._id}` ||
+                      savingSection === `owner-project-${project._id || idx}`
+                    }
+                  >
+                    {project._id ? 'Delete' : 'Remove'}
+                  </button>
+                </div>
+                <div className="grid two">
+                  <label className="field">
+                    <span>Project name</span>
+                    <input
+                      value={project.name}
+                      onChange={(e) => handleArrayField(setOwnerProjects, ownerProjects, idx, 'name', e.target.value)}
+                      disabled={!canManageServices}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Project type</span>
+                    <input
+                      value={project.type}
+                      onChange={(e) => handleArrayField(setOwnerProjects, ownerProjects, idx, 'type', e.target.value)}
+                      disabled={!canManageServices}
+                    />
+                  </label>
+                </div>
+                <div className="grid two">
+                  <label className="field">
+                    <span>Project link</span>
+                    <input
+                      type="url"
+                      value={project.link}
+                      onChange={(e) => handleArrayField(setOwnerProjects, ownerProjects, idx, 'link', e.target.value)}
+                      placeholder="https://example.com"
+                      disabled={!canManageServices}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Status</span>
+                    <select
+                      value={project.status === 'delivered' ? 'delivered' : 'live'}
+                      onChange={(e) =>
+                        handleArrayField(setOwnerProjects, ownerProjects, idx, 'status', e.target.value)
+                      }
+                      disabled={!canManageServices}
+                    >
+                      <option value="live">Live</option>
+                      <option value="delivered">Delivered</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Project details</span>
+                  <textarea
+                    rows={4}
+                    value={project.details || ''}
+                    onChange={(e) =>
+                      handleArrayField(setOwnerProjects, ownerProjects, idx, 'details', e.target.value)
+                    }
+                    placeholder="Short summary about this project"
+                    disabled={!canManageServices}
+                  />
+                </label>
+                <label className="field">
+                  <span>Technologies (comma separated)</span>
+                  <input
+                    value={project.technologiesInput ?? (project.technologies || []).join(', ')}
+                    onChange={(e) =>
+                      handleArrayField(setOwnerProjects, ownerProjects, idx, 'technologiesInput', e.target.value)
+                    }
+                    placeholder="React, Node.js, MongoDB, Razorpay"
+                    disabled={!canManageServices}
+                  />
+                </label>
+                <label className="field">
+                  <span>Display order (smaller number shows first)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={project.sortOrder}
+                    onChange={(e) =>
+                      handleArrayField(setOwnerProjects, ownerProjects, idx, 'sortOrder', e.target.value)
+                    }
+                    placeholder="1"
+                    disabled={!canManageServices}
+                  />
+                </label>
+                <div className="service-actions">
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={() => handleSaveOwnerProject(project, idx)}
+                    disabled={
+                      !canManageServices ||
+                      savingSection === `owner-project-${project._id || idx}` ||
+                      savingSection === `owner-project-delete-${project._id}`
+                    }
+                  >
+                    {savingSection === `owner-project-${project._id || idx}`
+                      ? 'Submitting…'
+                      : project._id
+                        ? 'Update Project'
+                        : 'Submit Project'}
+                  </button>
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+        <button
+          className="ghost"
+          type="button"
+          onClick={() => addItem(setOwnerProjects, emptyOwnerProject)}
+          disabled={!canManageServices || !ownerProjectDraftLoaded}
+        >
+          + Add project
         </button>
       </div>
     ),

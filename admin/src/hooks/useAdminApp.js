@@ -22,6 +22,12 @@ import {
   updateOwnerService,
 } from "../store/thunks/serviceThunks";
 import {
+  createOwnerProject,
+  deleteOwnerProject,
+  fetchOwnerProjects,
+  updateOwnerProject,
+} from "../store/thunks/projectThunks";
+import {
   deleteManagedUser,
   fetchManagedUsers,
   resetManagedUserPassword,
@@ -33,6 +39,7 @@ import {
   emptyEducation,
   emptySkill,
   emptyProject,
+  emptyOwnerProject,
   emptyService,
   emptyHeroSlide,
   emptySocial,
@@ -63,6 +70,11 @@ export const useAdminApp = () => {
     status: ownerHeroStatus,
     error: ownerHeroError,
   } = useSelector((state) => state.hero);
+  const {
+    items: ownerProjectItems,
+    status: ownerProjectsStatus,
+    error: ownerProjectsError,
+  } = useSelector((state) => state.ownerProjects);
   const {
     items: managedUsers,
     status: managedUsersStatus,
@@ -133,6 +145,7 @@ export const useAdminApp = () => {
   const [totalExperienceYears, setTotalExperienceYears] = useState("");
   const [projects, setProjects] = useState([emptyProject()]);
   const [services, setServices] = useState([emptyService()]);
+  const [ownerProjects, setOwnerProjects] = useState([emptyOwnerProject()]);
   const [heroSlides, setHeroSlides] = useState([emptyHeroSlide()]);
   const [socials, setSocials] = useState([emptySocial()]);
   const [contact, setContact] = useState(defaultContact);
@@ -140,6 +153,7 @@ export const useAdminApp = () => {
   const [savingSection, setSavingSection] = useState(null);
   const [toast, setToast] = useState("");
   const [serviceDraftLoaded, setServiceDraftLoaded] = useState(false);
+  const [ownerProjectDraftLoaded, setOwnerProjectDraftLoaded] = useState(false);
   const [heroDraftLoaded, setHeroDraftLoaded] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [userPasswordDrafts, setUserPasswordDrafts] = useState({});
@@ -198,6 +212,11 @@ export const useAdminApp = () => {
   }, [dispatch, user, canManageServices]);
 
   useEffect(() => {
+    if (!user || !canManageServices) return;
+    dispatch(fetchOwnerProjects());
+  }, [dispatch, user, canManageServices]);
+
+  useEffect(() => {
     if (!isOwner || !user) return;
     dispatch(fetchManagedUsers());
   }, [dispatch, user, isOwner]);
@@ -241,6 +260,47 @@ export const useAdminApp = () => {
     );
     setHeroDraftLoaded(true);
   }, [ownerHeroSlides, ownerHeroStatus, canManageServices]);
+
+  useEffect(() => {
+    if (!canManageServices) {
+      setOwnerProjects([emptyOwnerProject()]);
+      setOwnerProjectDraftLoaded(false);
+      return;
+    }
+
+    if (ownerProjectsStatus === "loading") return;
+
+    setOwnerProjects(
+      ownerProjectItems && ownerProjectItems.length
+        ? ownerProjectItems.map((project) => ({
+          _id: project?._id || "",
+          name: String(project?.name || ""),
+          type: String(project?.type || ""),
+          link: String(project?.link || ""),
+          details: String(project?.details || ""),
+          technologies: Array.isArray(project?.technologies)
+            ? project.technologies
+              .map((item) => String(item || "").trim())
+              .filter(Boolean)
+            : [],
+          technologiesInput: Array.isArray(project?.technologies)
+            ? project.technologies
+              .map((item) => String(item || "").trim())
+              .filter(Boolean)
+              .join(", ")
+            : "",
+          sortOrder:
+            Number.isFinite(Number(project?.sortOrder)) &&
+            Number(project?.sortOrder) > 0 &&
+            Number(project?.sortOrder) !== 999
+              ? Number(project.sortOrder)
+              : "",
+          status: String(project?.status || "live"),
+        }))
+        : [emptyOwnerProject()],
+    );
+    setOwnerProjectDraftLoaded(true);
+  }, [ownerProjectItems, ownerProjectsStatus, canManageServices]);
 
   const addItem = (setter, factory) => setter((prev) => [...prev, factory()]);
   const removeItem = (setter, list, index, min = 1) => {
@@ -414,6 +474,37 @@ export const useAdminApp = () => {
     isActive: service.isActive !== false,
   });
 
+  const sanitizeOwnerProjectPayload = (project) => {
+    // Keep typing UX smooth in admin and parse only while saving.
+    const technologiesSource =
+      typeof project.technologiesInput === "string"
+        ? project.technologiesInput
+        : Array.isArray(project.technologies)
+          ? project.technologies.join(",")
+          : "";
+
+    const technologies = technologiesSource
+      .split(",")
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .slice(0, 20);
+    const parsedSortOrder = Number(project.sortOrder);
+    const sortOrder =
+      Number.isFinite(parsedSortOrder) && parsedSortOrder > 0
+        ? Math.floor(parsedSortOrder)
+        : 999;
+
+    return {
+      name: String(project.name || "").trim(),
+      type: String(project.type || "").trim(),
+      link: String(project.link || "").trim(),
+      details: String(project.details || "").trim(),
+      technologies,
+      sortOrder,
+      status: String(project.status || "").toLowerCase() === "delivered" ? "delivered" : "live",
+    };
+  };
+
   const sanitizeHeroPayload = (slide) => ({
     image: String(slide.image || "").trim(),
     title: String(slide.title || "").trim(),
@@ -476,6 +567,70 @@ export const useAdminApp = () => {
       dispatch(fetchOwnerServices());
     } catch (err) {
       setToast(err.message || "Unable to delete service");
+    } finally {
+      setSavingSection(null);
+      setTimeout(() => setToast(""), 2200);
+    }
+  };
+
+  const handleSaveOwnerProject = async (project, index) => {
+    const payload = sanitizeOwnerProjectPayload(project);
+
+    if (!payload.name) {
+      setToast("Project name is required");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    if (!payload.type) {
+      setToast("Project type is required");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    if (!payload.link) {
+      setToast("Project link is required");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    const tracker = `owner-project-${project._id || index}`;
+    setSavingSection(tracker);
+    try {
+      if (project._id) {
+        await dispatch(
+          updateOwnerProject({ projectId: project._id, payload }),
+        ).unwrap();
+        setToast("Project updated");
+      } else {
+        await dispatch(createOwnerProject(payload)).unwrap();
+        setToast("Project created");
+      }
+      setOwnerProjectDraftLoaded(false);
+      dispatch(fetchOwnerProjects());
+    } catch (err) {
+      setToast(err.message || "Unable to save project");
+    } finally {
+      setSavingSection(null);
+      setTimeout(() => setToast(""), 2200);
+    }
+  };
+
+  const handleDeleteOwnerProject = async (project, index) => {
+    if (!project._id) {
+      removeItem(setOwnerProjects, ownerProjects, index, 1);
+      return;
+    }
+
+    const tracker = `owner-project-delete-${project._id}`;
+    setSavingSection(tracker);
+    try {
+      await dispatch(deleteOwnerProject(project._id)).unwrap();
+      setToast("Project deleted");
+      setOwnerProjectDraftLoaded(false);
+      dispatch(fetchOwnerProjects());
+    } catch (err) {
+      setToast(err.message || "Unable to delete project");
     } finally {
       setSavingSection(null);
       setTimeout(() => setToast(""), 2200);
@@ -776,6 +931,9 @@ export const useAdminApp = () => {
     ownerHeroSlides,
     ownerHeroStatus,
     ownerHeroError,
+    ownerProjectItems,
+    ownerProjectsStatus,
+    ownerProjectsError,
     managedUsers,
     managedUsersStatus,
     managedUsersError,
@@ -806,6 +964,8 @@ export const useAdminApp = () => {
     setProjects,
     services,
     setServices,
+    ownerProjects,
+    setOwnerProjects,
     heroSlides,
     setHeroSlides,
     socials,
@@ -818,6 +978,7 @@ export const useAdminApp = () => {
     toast,
     setToast,
     serviceDraftLoaded,
+    ownerProjectDraftLoaded,
     heroDraftLoaded,
     displayNameDraft,
     setDisplayNameDraft,
@@ -839,6 +1000,8 @@ export const useAdminApp = () => {
     removeServiceBulletPoint,
     handleSaveService,
     handleDeleteService,
+    handleSaveOwnerProject,
+    handleDeleteOwnerProject,
     handleSaveHeroSlide,
     handleDeleteHeroSlide,
     handleAvatarUpload,
@@ -851,5 +1014,6 @@ export const useAdminApp = () => {
     handleResetManagedUserPassword,
     handleSaveDisplayName,
     fetchManagedUsers,
+    fetchOwnerProjects,
   };
 };

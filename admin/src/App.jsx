@@ -11,6 +11,7 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import { TAB_LABELS } from "./utils/adminConstants";
 import { fetchOwnerHeroSlides } from "./store/thunks/heroThunks";
+import { fetchOwnerProjects } from "./store/thunks/projectThunks";
 import { fetchOwnerServices } from "./store/thunks/serviceThunks";
 import "./App.css";
 import "./index.css";
@@ -35,6 +36,7 @@ function App() {
   const renderServicesTabs = getSectionRenderers({
     ...admin,
     fetchOwnerServices,
+    fetchOwnerProjects,
     fetchOwnerHeroSlides,
   });
 

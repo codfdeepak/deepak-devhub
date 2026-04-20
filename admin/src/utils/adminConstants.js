@@ -64,6 +64,18 @@ export const emptyService = () => ({
   isActive: true,
 });
 
+export const emptyOwnerProject = () => ({
+  _id: "",
+  name: "",
+  type: "",
+  link: "",
+  details: "",
+  technologies: [],
+  technologiesInput: "",
+  sortOrder: "",
+  status: "live",
+});
+
 export const emptyHeroSlide = () => ({
   _id: "",
   image: "",
@@ -99,6 +111,7 @@ export const TAB_LABELS = {
   skills: "Skills",
   experience: "Experience",
   projects: "Projects",
+  ownerProjects: "Projects",
   services: "Services",
   hero: "Hero",
   consultations: "Consultations",
@@ -113,7 +126,7 @@ export const PROFILE_SETUP_TABS = [
   "experience",
 ];
 export const PARTNER_PROFILE_TABS = ["about", "skills", "experience"];
-export const OWNER_ACCESS_TABS = ["services", "hero", "consultations", "users"];
+export const OWNER_ACCESS_TABS = ["services", "hero", "ownerProjects", "consultations", "users"];
 
 export const TAB_GROUPS = [
   { key: "profile-setup", title: "Profile Setup", tabs: PROFILE_SETUP_TABS },

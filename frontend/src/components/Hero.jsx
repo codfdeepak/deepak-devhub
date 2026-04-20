@@ -1,56 +1,55 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 import { selectHeroSlides, selectHeroStatus } from "../Redux/slices/heroSlice";
 import { fetchPublicHeroSlides } from "../Redux/thunks/heroThunks";
+import heroImage from "../assets/hero.png";
 
 const FALLBACK_HERO_SLIDES = [
-  // {
-  //   image:
-  //     'https://images.unsplash.com/photo-1487014679447-9f8336841d58?auto=format&fit=crop&w=1800&q=80',
-  //   title: 'Premium Product Engineering',
-  //   text: 'High-impact web experiences crafted for performance and business growth.',
-  // },
-  // {
-  //   image:
-  //     'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1800&q=80',
-  //   title: 'Clean Frontend Architecture',
-  //   text: 'Scalable components with modern UI patterns and reliable maintainability.',
-  // },
-  // {
-  //   image:
-  //     'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1800&q=80',
-  //   title: 'Fast Delivery with Quality',
-  //   text: 'From idea to launch with robust code quality and polished interfaces.',
-  // },
-  // {
-  //   image:
-  //     'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1800&q=80',
-  //   title: 'Reliable Full-Stack Solutions',
-  //   text: 'API, frontend, and deployment aligned for stable end-to-end execution.',
-  // },
-  // {
-  //   image:
-  //     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1800&q=80',
-  //   title: 'Built to Convert and Scale',
-  //   text: 'Premium design direction paired with production-ready implementation.',
-  // },
+  {
+    _id: "fallback-slide-1",
+    image: heroImage,
+    title: "We engineer software products that scale with your business.",
+    text: "Strategy, UI, architecture, and development aligned to ship fast and stay maintainable in production.",
+  },
+  {
+    _id: "fallback-slide-2",
+    image: heroImage,
+    title:
+      "From MVP to enterprise systems, we build for speed and reliability.",
+    text: "Modern web stack, automation-ready workflows, and clean code practices built around real business outcomes.",
+  },
 ];
 
-const STATIC_BRAND_SLIDE = {
-  _id: "static-brand-slide",
-  isBrandSlide: true,
-  title: "Start Your Project Conversation on WhatsApp",
-  text: "Share your requirements, timeline, and goals in one message. We review quickly and reply with a professional action plan.",
-};
+const HERO_SLIDE_DELAY_MS = 10000;
+const HERO_CAPABILITIES = [
+  "Web Platforms",
+  "SaaS Products",
+  "Cloud Deployment",
+];
+const HERO_HIGHLIGHTS = [
+  { value: "100+", label: "Live Products Delivered" },
+  { value: "15+", label: "Senior Dev Specialists" },
+  { value: "3+", label: "Years in Client Delivery" },
+];
+const HERO_MEDIA_DETAILS = [
+  { label: "Delivery Focus", value: "Management & Product Websites" },
+  { label: "Tech Stack", value: "React • Node • AWS" },
+];
+const HERO_WHATSAPP_NUMBER = "919501924299";
+const HERO_WHATSAPP_BASE_URL = `https://wa.me/${HERO_WHATSAPP_NUMBER}`;
 
-const WHATSAPP_LINK = `https://wa.me/919501924299?text=${encodeURIComponent(
-  "Hi Deepak team, I want to discuss a project.",
-)}`;
+const sanitizeSlideTitle = (title = "", index = 0) => {
+  const cleanedTitle = String(title)
+    .replace(/^featured[\s:-]*/i, "")
+    .trim();
+  return cleanedTitle || `Software Delivery Track ${index + 1}`;
+};
 
 const normalizeSlide = (slide = {}, index = 0) => ({
   _id: slide?._id || "",
   image: String(slide?.image || "").trim(),
-  title: String(slide?.title || "").trim() || `Featured Slide ${index + 1}`,
+  title: sanitizeSlideTitle(slide?.title, index),
   text: String(slide?.description || slide?.text || "").trim(),
 });
 
@@ -59,6 +58,7 @@ function Hero({ onDiscuss }) {
   const storedSlides = useSelector(selectHeroSlides);
   const heroStatus = useSelector(selectHeroStatus);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState(0);
 
   useEffect(() => {
     if (heroStatus === "idle") {
@@ -71,85 +71,130 @@ function Hero({ onDiscuss }) {
       .map((slide, index) => normalizeSlide(slide, index))
       .filter((slide) => slide.image && slide.title && slide.text);
 
-    const baseSlides = normalized.length ? normalized : FALLBACK_HERO_SLIDES;
-    return [...baseSlides, STATIC_BRAND_SLIDE];
+    return normalized.length ? normalized : FALLBACK_HERO_SLIDES;
   }, [storedSlides]);
 
   useEffect(() => {
     setActiveIndex(0);
+    setPreviousIndex(0);
   }, [slides.length]);
 
   useEffect(() => {
     if (slides.length <= 1) return undefined;
 
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
-    }, 3500);
+      setActiveIndex((current) => {
+        const nextIndex = (current + 1) % slides.length;
+        setPreviousIndex(current);
+        return nextIndex;
+      });
+    }, HERO_SLIDE_DELAY_MS);
 
     return () => window.clearInterval(timer);
   }, [slides.length]);
+
+  const setSlideByDot = (nextIndex) => {
+    if (nextIndex === activeIndex) return;
+    setPreviousIndex(activeIndex);
+    setActiveIndex(nextIndex);
+  };
+
+  const getWhatsAppLink = (slideTitle) => {
+    const message = `Hi, I want to discuss a project about: ${slideTitle}`;
+    return `${HERO_WHATSAPP_BASE_URL}?text=${encodeURIComponent(message)}`;
+  };
 
   return (
     <section className="hero-slider" aria-label="Hero slider">
       {slides.map((slide, index) => (
         <article
           key={slide._id || `${slide.title}-${index}`}
-          className={`hero-slide ${index === activeIndex ? "active" : ""} ${slide.isBrandSlide ? "brand-slide" : ""}`}
-          style={
-            slide.isBrandSlide
-              ? undefined
-              : { backgroundImage: `url(${slide.image})` }
-          }
+          className={`hero-slide split-slide ${
+            index === activeIndex
+              ? "active is-entering"
+              : index === previousIndex
+                ? "is-exiting"
+                : "is-hidden"
+          }`}
           aria-hidden={index !== activeIndex}
         >
-          {slide.isBrandSlide ? (
-            <div className="hero-overlay brand-hero-overlay">
-              <p className="hero-kicker">Quick Connect</p>
-              <h2>{slide.title}</h2>
-              <p>{slide.text}</p>
-              <div className="hero-brand-actions">
-                <a
-                  className="cta cta-btn hero-whatsapp-cta"
-                  href={WHATSAPP_LINK}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="hero-whatsapp-icon"
-                    aria-hidden="true"
+          <div className="hero-split-layout">
+            <div className="hero-copy-pane">
+              <div className="hero-overlay split-overlay">
+                <h2>{slide.title}</h2>
+                <p className="hero-description">{slide.text}</p>
+                <div className="hero-capability-row" aria-hidden="true">
+                  {HERO_CAPABILITIES.map((capability) => (
+                    <span key={capability} className="hero-capability-chip">
+                      {capability}
+                    </span>
+                  ))}
+                </div>
+                <div className="hero-metrics" aria-label="Team highlights">
+                  {HERO_HIGHLIGHTS.map((metric) => (
+                    <div className="hero-metric" key={metric.label}>
+                      <span className="hero-metric-value">{metric.value}</span>
+                      <span className="hero-metric-label">{metric.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="hero-actions">
+                  <button
+                    className="cta cta-btn hero-discuss-btn"
+                    type="button"
+                    onClick={() => onDiscuss?.(slide.title)}
                   >
-                    <path
-                      fill="currentColor"
-                      d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.55 0 .24 5.31.24 11.84c0 2.08.54 4.12 1.56 5.92L0 24l6.42-1.68a11.8 11.8 0 0 0 5.66 1.44h.01c6.53 0 11.84-5.31 11.84-11.84 0-3.16-1.23-6.13-3.41-8.44Zm-8.44 18.3h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.81 1 1.02-3.72-.24-.38a9.9 9.9 0 0 1-1.52-5.24c0-5.45 4.44-9.89 9.9-9.89 2.65 0 5.14 1.03 7.01 2.9a9.84 9.84 0 0 1 2.89 7c0 5.46-4.44 9.9-9.89 9.9Zm5.43-7.43c-.3-.15-1.8-.89-2.08-.99-.28-.1-.48-.15-.68.15-.2.3-.78.99-.95 1.2-.18.2-.35.23-.65.08-.3-.15-1.26-.46-2.4-1.46-.89-.79-1.49-1.77-1.67-2.07-.18-.3-.02-.47.13-.62.13-.13.3-.35.45-.53.15-.18.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.64-.93-2.25-.24-.58-.49-.5-.68-.51h-.58c-.2 0-.53.08-.8.38-.28.3-1.06 1.04-1.06 2.53 0 1.5 1.08 2.94 1.23 3.14.15.2 2.1 3.2 5.09 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.88.12.57-.08 1.8-.73 2.05-1.43.25-.7.25-1.3.18-1.43-.08-.13-.28-.2-.58-.35Z"
-                    />
-                  </svg>
-                  WhatsApp Us
-                </a>
+                    Discuss with us
+                  </button>
+                  <a
+                    className="cta hero-whatsapp-btn"
+                    href={getWhatsAppLink(slide.title)}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Chat on WhatsApp"
+                  >
+                    WhatsApp
+                  </a>
+                  <Link className="cta hero-view-work-btn" to="/services">
+                    View Work
+                  </Link>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="hero-overlay">
-              <p className="hero-kicker">Featured</p>
-              <h2>{slide.title}</h2>
-              <p>{slide.text}</p>
-              <button
-                className="cta primary cta-btn hero-discuss-btn"
-                type="button"
-                onClick={() => onDiscuss?.(slide.title)}
-              >
-                Discuss with us
-              </button>
+            <div className="hero-media-pane">
+              <div className="hero-media-card">
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  loading={index === activeIndex ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </div>
+              <div className="hero-media-meta" aria-hidden="true">
+                {HERO_MEDIA_DETAILS.map((detail) => (
+                  <div className="hero-media-meta-card" key={detail.label}>
+                    <span className="hero-media-meta-label">
+                      {detail.label}
+                    </span>
+                    <span className="hero-media-meta-value">
+                      {detail.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
+          </div>
         </article>
       ))}
 
-      <div className="hero-dots" aria-hidden="true">
+      <div className="hero-dots">
         {slides.map((slide, index) => (
-          <span
+          <button
+            type="button"
             key={`${slide._id || slide.title}-dot-${index}`}
             className={`hero-dot ${index === activeIndex ? "active" : ""}`}
+            onClick={() => setSlideByDot(index)}
+            aria-label={`Show slide ${index + 1}`}
           />
         ))}
       </div>

@@ -3,12 +3,16 @@ import { NavLink } from "react-router-dom";
 import logoDark from "../assets/logo1.png";
 import logoLight from "../assets/logo2.png";
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
   { to: "/", label: "Home", end: true },
   { to: "/technologies", label: "Technologies" },
   { to: "/services", label: "Services" },
+  { to: "/projects", label: "Projects" },
   { to: "/payment-policy", label: "Payment Policy" },
   { to: "/partners", label: "Partners" },
+];
+
+const OVERFLOW_NAV_ITEMS = [
   { to: "/about-us", label: "About Us" },
   { to: "/contact-us", label: "Contact Us" },
 ];
@@ -80,8 +84,10 @@ function MoonMetalIcon() {
 
 function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
   const [hoveredPath, setHoveredPath] = useState("");
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const clearHoverTimerRef = useRef(null);
   const closeNavTimerRef = useRef(null);
+  const moreMenuRef = useRef(null);
 
   const getNavClassName = (isActive, path) => {
     const classNames = [];
@@ -123,6 +129,8 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
     window.matchMedia("(pointer: coarse)").matches;
 
   const handleNavItemClick = () => {
+    setMoreMenuOpen(false);
+
     if (clearHoverTimerRef.current) {
       window.clearTimeout(clearHoverTimerRef.current);
       clearHoverTimerRef.current = null;
@@ -138,6 +146,43 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
     setHoveredPath("");
     queueNavClose();
   };
+
+  const handleMoreMenuItemClick = () => {
+    setHoveredPath("");
+    setMoreMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (!moreMenuOpen) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (!moreMenuRef.current?.contains(event.target)) {
+        setMoreMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setMoreMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
+    if (navOpen) {
+      setMoreMenuOpen(false);
+    }
+  }, [navOpen]);
 
   useEffect(
     () => () => {
@@ -169,7 +214,7 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
       </div>
 
       <div className={`nav-links ${navOpen ? "open" : ""}`}>
-        {NAV_ITEMS.map((item) => (
+        {PRIMARY_NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -185,9 +230,57 @@ function AppHeader({ theme, navOpen, onToggleTheme, onToggleNav, onCloseNav }) {
             {item.label}
           </NavLink>
         ))}
+        {OVERFLOW_NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `overflow-nav-item ${getNavClassName(isActive, item.to)}`.trim()
+            }
+            onMouseEnter={() => setHoveredPath(item.to)}
+            onMouseLeave={() => setHoveredPath("")}
+            onTouchStart={() => setHoveredPath(item.to)}
+            onTouchEnd={queueHoverClear}
+            onTouchCancel={() => setHoveredPath("")}
+            onClick={handleNavItemClick}
+          >
+            {item.label}
+          </NavLink>
+        ))}
       </div>
 
       <div className="nav-right">
+        <div className="more-menu-wrap" ref={moreMenuRef}>
+          <button
+            type="button"
+            className={`more-menu-trigger ${moreMenuOpen ? "open" : ""}`}
+            onClick={() => setMoreMenuOpen((prev) => !prev)}
+            aria-label="More navigation options"
+            aria-expanded={moreMenuOpen}
+          >
+            <span className="more-menu-dots" aria-hidden="true">
+              ⋮
+            </span>
+          </button>
+
+          <div className={`more-menu-dropdown ${moreMenuOpen ? "open" : ""}`}>
+            {OVERFLOW_NAV_ITEMS.map((item) => (
+              <NavLink
+                key={`more-${item.to}`}
+                to={item.to}
+                className={({ isActive }) =>
+                  `more-menu-link ${getNavClassName(isActive, item.to)}`.trim()
+                }
+                onMouseEnter={() => setHoveredPath(item.to)}
+                onMouseLeave={() => setHoveredPath("")}
+                onClick={handleMoreMenuItemClick}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
         <button
           type="button"
           className="theme-toggle"
