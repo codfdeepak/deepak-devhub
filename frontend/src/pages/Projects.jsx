@@ -128,7 +128,7 @@ const ProjectStatusIcon = ({ status }) => {
   )
 }
 
-function Projects() {
+function Projects({ embedded = false }) {
   const dispatch = useDispatch()
   const projects = useSelector(selectProjects)
   const status = useSelector(selectProjectsStatus)
@@ -174,12 +174,13 @@ function Projects() {
     return items.filter((project) => toCategoryKey(project?.type) === selectedCategory)
   }, [projects, selectedCategory])
 
+  const totalProjectsCount = (projects || []).length
+
   const deliveredCount = useMemo(
-    () =>
-      (filteredProjects || []).filter((project) => String(project?.status || '').toLowerCase() === 'delivered').length,
-    [filteredProjects],
+    () => (projects || []).filter((project) => String(project?.status || '').toLowerCase() === 'delivered').length,
+    [projects],
   )
-  const liveCount = Math.max(0, (filteredProjects || []).length - deliveredCount)
+  const liveCount = Math.max(0, totalProjectsCount - deliveredCount)
 
   const activeCategoryLabel = useMemo(() => {
     if (selectedCategory === 'all') return 'All'
@@ -203,15 +204,24 @@ function Projects() {
   const hasProjects = (projects || []).length > 0
 
   const categoryProjectCount = useMemo(
-    () => (selectedCategory === 'all' ? (projects || []).length : filteredProjects.length),
-    [filteredProjects.length, projects, selectedCategory],
+    () => (selectedCategory === 'all' ? totalProjectsCount : filteredProjects.length),
+    [filteredProjects.length, selectedCategory, totalProjectsCount],
   )
 
   const categorySummaryText = useMemo(() => {
     if (!hasProjects) return ''
-    if (selectedCategory === 'all') return 'Showing all project categories'
+    if (selectedCategory === 'all') return 'Showing projects from all categories'
     return `Showing ${categoryProjectCount} project${categoryProjectCount === 1 ? '' : 's'} in ${activeCategoryLabel}`
   }, [activeCategoryLabel, categoryProjectCount, hasProjects, selectedCategory])
+
+  const heroContextText = useMemo(() => {
+    if (!hasProjects) return 'New projects will appear here soon.'
+    if (selectedCategory === 'all') {
+      return `Currently showcasing ${totalProjectsCount} projects across ${categoryData.length} categories.`
+    }
+
+    return `Currently viewing ${categoryProjectCount} project${categoryProjectCount === 1 ? '' : 's'} in ${activeCategoryLabel}.`
+  }, [activeCategoryLabel, categoryData.length, categoryProjectCount, hasProjects, selectedCategory, totalProjectsCount])
 
   const projectsGridClassName = useMemo(() => {
     if (filteredProjects.length === 1) return 'projects-grid projects-grid-single'
@@ -219,37 +229,47 @@ function Projects() {
     return 'projects-grid'
   }, [filteredProjects.length])
 
-  return (
-    <PageFrame id="projects-page">
-      <section className="panel service-details-top">
-        <div className="service-details-nav">
-          <Link className="pill small profile-back-link" to="/">
-            ← Back to Home
-          </Link>
-          <span className="pill small">Projects</span>
-        </div>
-      </section>
+  const projectsContent = (
+    <>
+      {!embedded && (
+        <section className="panel service-details-top">
+          <div className="service-details-nav">
+            <Link className="pill small profile-back-link" to="/">
+              ← Back to Home
+            </Link>
+            <span className="pill small">Projects</span>
+          </div>
+        </section>
+      )}
 
-      <section className="panel projects-hero-panel">
+      <section className={`panel projects-hero-panel ${embedded ? 'embedded' : ''}`}>
         <div className="projects-hero-copy">
+          <span className="projects-hero-eyebrow">Project Portfolio</span>
           <h1>Projects We Built & Delivered</h1>
           <p className="lede">
-            Real software delivery for real business goals. Explore live products and delivered solutions built by our
-            team across web, SaaS, and custom product development.
+            Real software built for real business outcomes. Explore live products and delivered solutions crafted by
+            our team across web, SaaS, and custom product development.
           </p>
+          <p className="projects-hero-context">{heroContextText}</p>
         </div>
-        <div className="projects-hero-metrics" aria-label="Project stats">
-          <div className="projects-metric-card">
-            <span className="projects-metric-value">{(filteredProjects || []).length}</span>
-            <span className="projects-metric-label">{selectedCategory === 'all' ? 'Total Projects' : 'In Category'}</span>
+        <div className="projects-hero-metrics-wrap">
+          <div className="projects-hero-active-view" aria-live="polite">
+            <span className="projects-hero-active-label">Active View</span>
+            <span className="projects-hero-active-value">{selectedCategory === 'all' ? 'All Categories' : activeCategoryLabel}</span>
           </div>
-          <div className="projects-metric-card">
-            <span className="projects-metric-value">{liveCount}</span>
-            <span className="projects-metric-label">Live</span>
-          </div>
-          <div className="projects-metric-card">
-            <span className="projects-metric-value">{deliveredCount}</span>
-            <span className="projects-metric-label">Delivered</span>
+          <div className="projects-hero-metrics" aria-label="Project stats">
+            <div className="projects-metric-card total">
+              <span className="projects-metric-value">{totalProjectsCount}</span>
+              <span className="projects-metric-label">Total Projects</span>
+            </div>
+            <div className="projects-metric-card">
+              <span className="projects-metric-value">{liveCount}</span>
+              <span className="projects-metric-label">Live</span>
+            </div>
+            <div className="projects-metric-card">
+              <span className="projects-metric-value">{deliveredCount}</span>
+              <span className="projects-metric-label">Delivered</span>
+            </div>
           </div>
         </div>
       </section>
@@ -257,7 +277,7 @@ function Projects() {
       {hasProjects && (
         <section className="panel projects-filter-panel">
           <div className="projects-filter-head">
-            <h2>Browse by Category</h2>
+            <h2>Browse Projects by Category</h2>
             <p className="muted">{categorySummaryText}</p>
           </div>
           <div className="projects-category-tabs" role="tablist" aria-label="Project categories">
@@ -367,6 +387,16 @@ function Projects() {
           </div>
         )}
       </section>
+    </>
+  )
+
+  if (embedded) {
+    return <div id="projects-page">{projectsContent}</div>
+  }
+
+  return (
+    <PageFrame id="projects-page">
+      {projectsContent}
     </PageFrame>
   )
 }

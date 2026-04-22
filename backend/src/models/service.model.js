@@ -1,6 +1,40 @@
 const mongoose = require('mongoose')
 
 const stringArrayLimit = (value, max) => Array.isArray(value) && value.length <= max
+const SERVICE_CATEGORY_VALUES = [
+  'website-development',
+  'app-development',
+  'webview-development',
+  'seo-content-marketing',
+  'cloud-server-management',
+]
+
+const serviceContentSectionSchema = new mongoose.Schema(
+  {
+    image: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 2000,
+    },
+    bulletPoints: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function (arr) {
+          return stringArrayLimit(arr, 20)
+        },
+        message: 'Section bullet points can hold up to 20 items',
+      },
+    },
+  },
+  { _id: false },
+)
 
 const serviceSchema = new mongoose.Schema(
   {
@@ -9,6 +43,13 @@ const serviceSchema = new mongoose.Schema(
       required: true,
       trim: true,
       maxlength: 140,
+    },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      enum: SERVICE_CATEGORY_VALUES,
+      default: 'website-development',
     },
     image: {
       type: String,
@@ -39,6 +80,16 @@ const serviceSchema = new mongoose.Schema(
           return stringArrayLimit(arr, 15)
         },
         message: 'Snapshots can hold up to 15 images',
+      },
+    },
+    contentSections: {
+      type: [serviceContentSectionSchema],
+      default: [],
+      validate: {
+        validator: function (arr) {
+          return stringArrayLimit(arr, 20)
+        },
+        message: 'Content sections can hold up to 20 items',
       },
     },
     sortOrder: {

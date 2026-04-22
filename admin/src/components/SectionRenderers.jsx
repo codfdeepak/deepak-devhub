@@ -8,6 +8,7 @@ import {
   emptyService,
   emptySkill,
   emptySocial,
+  SERVICE_CATEGORY_OPTIONS,
 } from '../utils/adminConstants'
 
 export const getSectionRenderers = (adminData) => {
@@ -69,12 +70,12 @@ export const getSectionRenderers = (adminData) => {
     handleArrayField,
     handleProjectImages,
     removeProjectImage,
-    handleServiceCoverUpload,
     handleHeroImageUpload,
-    handleServiceSnapshotsUpload,
-    removeServiceSnapshot,
-    addServiceBulletPoint,
-    removeServiceBulletPoint,
+    addServiceContentSection,
+    removeServiceContentSection,
+    handleServiceSectionImageUpload,
+    addServiceSectionBulletPoint,
+    removeServiceSectionBulletPoint,
     handleSaveService,
     handleDeleteService,
     handleSaveOwnerProject,
@@ -504,7 +505,7 @@ export const getSectionRenderers = (adminData) => {
         )}
         {canManageServices && (
           <p className="hint">
-            Fill service name, image, description, bullet points, and snapshots (max 15), then publish each service.
+            Build each service with repeatable sections. Description is required, image and bullet lines are optional.
           </p>
         )}
         {canManageServices && ownerServicesError && <p className="error">{ownerServicesError}</p>}
@@ -517,6 +518,9 @@ export const getSectionRenderers = (adminData) => {
                 </span>
                 <span className="accordion-meta">
                   {svc.name ? svc.name : 'Untitled'}
+                  {` · ${
+                    SERVICE_CATEGORY_OPTIONS.find((item) => item.value === svc.category)?.label || 'Website Development'
+                  }`}
                   {svc.isActive === false ? ' · Inactive' : ' · Active'}
                 </span>
               </summary>
@@ -546,12 +550,18 @@ export const getSectionRenderers = (adminData) => {
                   />
                 </label>
                 <label className="field">
-                  <span>Primary image URL</span>
-                  <input
-                    value={svc.image}
-                    onChange={(e) => handleArrayField(setServices, services, idx, 'image', e.target.value)}
+                  <span>Service category</span>
+                  <select
+                    value={svc.category || SERVICE_CATEGORY_OPTIONS[0].value}
+                    onChange={(e) => handleArrayField(setServices, services, idx, 'category', e.target.value)}
                     disabled={!canManageServices}
-                  />
+                  >
+                    {SERVICE_CATEGORY_OPTIONS.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="field">
                   <span>Sort order</span>
@@ -576,29 +586,8 @@ export const getSectionRenderers = (adminData) => {
                   </select>
                 </label>
               </div>
-              <div className="grid two">
-                <label className="field">
-                  <span>Upload primary image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleServiceCoverUpload(idx, e.target.files?.[0])}
-                    disabled={!canManageServices}
-                  />
-                </label>
-                <label className="field">
-                  <span>Upload snapshots (max 15)</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleServiceSnapshotsUpload(idx, e.target.files)}
-                    disabled={!canManageServices}
-                  />
-                </label>
-              </div>
               <label className="field">
-                <span>Description</span>
+                <span>Service intro description</span>
                 <textarea
                   rows={4}
                   value={svc.description}
@@ -606,60 +595,137 @@ export const getSectionRenderers = (adminData) => {
                   disabled={!canManageServices}
                 />
               </label>
-              <div className="service-bullets">
+
+              <div className="service-content-sections">
                 <div className="item-top">
-                  <strong>Bullet points</strong>
+                  <strong>Content Sections</strong>
                   <button
                     className="ghost"
                     type="button"
-                    onClick={() => addServiceBulletPoint(idx)}
+                    onClick={() => addServiceContentSection(idx)}
                     disabled={!canManageServices}
                   >
-                    + Add bullet
+                    + Add section
                   </button>
                 </div>
+
                 <div className="stack">
-                  {(svc.bulletPoints || []).map((point, bulletIndex) => (
-                    <div className="service-bullet-row" key={`svc-${idx}-point-${bulletIndex}`}>
-                      <input
-                        value={point}
-                        onChange={(e) => {
-                          const next = [...(svc.bulletPoints || [])]
-                          next[bulletIndex] = e.target.value
-                          handleArrayField(setServices, services, idx, 'bulletPoints', next)
-                        }}
-                        disabled={!canManageServices}
-                      />
-                      <button
-                        className="link-btn"
-                        type="button"
-                        onClick={() => removeServiceBulletPoint(idx, bulletIndex)}
-                        disabled={!canManageServices || (svc.bulletPoints || []).length <= 1}
-                      >
-                        Remove
-                      </button>
+                  {(svc.contentSections || []).map((section, sectionIndex) => (
+                    <div className="item-card service-content-section-card" key={`svc-${idx}-section-${sectionIndex}`}>
+                      <div className="item-top">
+                        <strong>Section {sectionIndex + 1}</strong>
+                        <button
+                          className="link-btn"
+                          type="button"
+                          onClick={() => removeServiceContentSection(idx, sectionIndex)}
+                          disabled={!canManageServices || (svc.contentSections || []).length <= 1}
+                        >
+                          Remove section
+                        </button>
+                      </div>
+
+                      <div className="grid two">
+                        <label className="field">
+                          <span>Section image URL</span>
+                          <input
+                            value={section.image || ''}
+                            onChange={(e) => {
+                              const nextSections = [...(svc.contentSections || [])]
+                              nextSections[sectionIndex] = {
+                                ...(nextSections[sectionIndex] || {}),
+                                image: e.target.value,
+                              }
+                              handleArrayField(setServices, services, idx, 'contentSections', nextSections)
+                            }}
+                            disabled={!canManageServices}
+                            placeholder="https://..."
+                          />
+                        </label>
+                        <label className="field">
+                          <span>Upload section image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleServiceSectionImageUpload(idx, sectionIndex, e.target.files?.[0])}
+                            disabled={!canManageServices}
+                          />
+                        </label>
+                      </div>
+
+                      {section.image && (
+                        <div className="gallery-row">
+                          <div className="thumbs">
+                            <div className="thumb">
+                              <img src={section.image} alt={`service-section-${sectionIndex + 1}`} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <label className="field">
+                        <span>Section description</span>
+                        <textarea
+                          rows={3}
+                          value={section.description || ''}
+                          onChange={(e) => {
+                            const nextSections = [...(svc.contentSections || [])]
+                            nextSections[sectionIndex] = {
+                              ...(nextSections[sectionIndex] || {}),
+                              description: e.target.value,
+                            }
+                            handleArrayField(setServices, services, idx, 'contentSections', nextSections)
+                          }}
+                          disabled={!canManageServices}
+                        />
+                      </label>
+
+                      <div className="service-bullets">
+                        <div className="item-top">
+                          <strong>Bullet lines</strong>
+                          <button
+                            className="ghost"
+                            type="button"
+                            onClick={() => addServiceSectionBulletPoint(idx, sectionIndex)}
+                            disabled={!canManageServices}
+                          >
+                            + Add bullet
+                          </button>
+                        </div>
+                        <div className="stack">
+                          {(section.bulletPoints || []).map((point, bulletIndex) => (
+                            <div className="service-bullet-row" key={`svc-${idx}-section-${sectionIndex}-point-${bulletIndex}`}>
+                              <input
+                                value={point}
+                                onChange={(e) => {
+                                  const nextSections = [...(svc.contentSections || [])]
+                                  const currentSection = nextSections[sectionIndex] || {}
+                                  const nextPoints = [...(currentSection.bulletPoints || [])]
+                                  nextPoints[bulletIndex] = e.target.value
+                                  nextSections[sectionIndex] = {
+                                    ...currentSection,
+                                    bulletPoints: nextPoints,
+                                  }
+                                  handleArrayField(setServices, services, idx, 'contentSections', nextSections)
+                                }}
+                                disabled={!canManageServices}
+                              />
+                              <button
+                                className="link-btn"
+                                type="button"
+                                onClick={() => removeServiceSectionBulletPoint(idx, sectionIndex, bulletIndex)}
+                                disabled={!canManageServices || (section.bulletPoints || []).length <= 1}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="gallery-row">
-                <div className="chip">{(svc.snapshots || []).length} / 15 snapshots</div>
-                <div className="thumbs">
-                  {(svc.snapshots || []).map((img, snapshotIndex) => (
-                    <div className="thumb" key={`svc-${idx}-shot-${snapshotIndex}`}>
-                      <img src={img} alt={`service-snapshot-${snapshotIndex + 1}`} />
-                      <button
-                        type="button"
-                        className="link-btn"
-                        onClick={() => removeServiceSnapshot(idx, snapshotIndex)}
-                        disabled={!canManageServices}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+
               <div className="service-actions">
                 <button
                   className="primary"

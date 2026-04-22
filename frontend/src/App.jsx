@@ -10,6 +10,7 @@ import Partners from "./pages/Partners";
 import PaymentPolicy from "./pages/PaymentPolicy";
 import ProfileDetails from "./pages/ProfileDetails";
 import Projects from "./pages/Projects";
+import ServiceCategoryPage from "./pages/ServiceCategoryPage";
 import ServiceDetails from "./pages/ServiceDetails";
 import Services from "./pages/Services";
 import Technologies from "./pages/Technologies";
@@ -30,6 +31,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/services/category" element={<Navigate to="/services" replace />} />
+        <Route path="/services/category/:categoryKey" element={<ServiceCategoryPage />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/payment-policy" element={<PaymentPolicy />} />
         <Route path="/services/:serviceId" element={<ServiceDetails />} />

@@ -10,6 +10,7 @@ import {
   selectServiceDetailStatus,
 } from '../Redux/slices/serviceSlice'
 import { fetchPublicServiceById } from '../Redux/thunks/serviceThunks'
+import { getServiceSections } from '../utils/serviceCatalog'
 
 function ServiceDetails() {
   const { serviceId } = useParams()
@@ -25,9 +26,12 @@ function ServiceDetails() {
     }
   }, [dispatch, serviceId])
 
-  const snapshots = Array.isArray(service?.snapshots) ? service.snapshots : []
-  const bulletPoints = Array.isArray(service?.bulletPoints) ? service.bulletPoints : []
-  const heroImage = service?.image || snapshots[0] || ecommerceServiceImage
+  const contentSections = getServiceSections(service)
+  const serviceSummary = String(service?.description || '').trim() || contentSections[0]?.description || ''
+  const totalBulletPoints = contentSections.reduce(
+    (sum, section) => sum + (Array.isArray(section?.bulletPoints) ? section.bulletPoints.length : 0),
+    0,
+  )
 
   return (
     <PageFrame id="service-details-page">
@@ -60,31 +64,15 @@ function ServiceDetails() {
 
       {service && (
         <>
-          <section className="panel service-details-hero">
-            <div className="service-details-image-wrap">
-              <img
-                src={heroImage}
-                alt={service?.name ? `${service.name} primary image` : 'Service primary image'}
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.onerror = null
-                  event.currentTarget.src = ecommerceServiceImage
-                }}
-              />
-            </div>
-
-            <div className="service-details-copy">
-              <span className="pill small">Detailed View</span>
+          <section className="panel service-details-hero service-details-hero-text-only">
+            <div className="service-details-copy service-details-copy-full">
+              <div className="service-details-meta-row">
+                <span className="pill small">Detailed View</span>
+                <span className="service-details-kpi">{contentSections.length} Sections</span>
+                <span className="service-details-kpi">{totalBulletPoints} Key Points</span>
+              </div>
               <h1>{service.name || 'Service'}</h1>
-              <p className="muted">{service.description}</p>
-
-              {bulletPoints.length > 0 && (
-                <ul className="service-details-bullets">
-                  {bulletPoints.map((point, index) => (
-                    <li key={`detail-point-${index}`}>{point}</li>
-                  ))}
-                </ul>
-              )}
+              <p className="muted">{serviceSummary || 'Service details will be added soon.'}</p>
 
               <div className="service-details-actions">
                 <button
@@ -98,28 +86,49 @@ function ServiceDetails() {
             </div>
           </section>
 
-          <section className="panel service-details-gallery-panel">
-            <div className="panel-head">
-              <h2>Service Snapshots</h2>
-              <span className="pill small">{snapshots.length} Images</span>
+          <section className="panel service-detail-sections-panel">
+            <div className="panel-head service-detail-sections-head">
+              <h2>Service Content Sections</h2>
+              <span className="pill small">{contentSections.length} Sections</span>
             </div>
 
-            {snapshots.length === 0 && <p className="muted">No snapshots uploaded for this service yet.</p>}
+            {contentSections.length === 0 && <p className="muted">No sections published for this service yet.</p>}
 
-            {snapshots.length > 0 && (
-              <div className="service-details-gallery">
-                {snapshots.map((snapshot, index) => (
-                  <div className="service-details-shot" key={`snapshot-${index}`}>
-                    <img
-                      src={snapshot}
-                      alt={`${service.name || 'Service'} snapshot ${index + 1}`}
-                      loading="lazy"
-                      onError={(event) => {
-                        event.currentTarget.onerror = null
-                        event.currentTarget.src = ecommerceServiceImage
-                      }}
-                    />
-                  </div>
+            {contentSections.length > 0 && (
+              <div className="service-detail-sections">
+                {contentSections.map((section, index) => (
+                  <article className="service-detail-section" key={`service-section-${index}`}>
+                    <div className="service-detail-section-media">
+                      <span className="service-section-index">Section {String(index + 1).padStart(2, '0')}</span>
+                      <img
+                        src={section.image || ecommerceServiceImage}
+                        alt={`${service.name || 'Service'} section ${index + 1}`}
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.onerror = null
+                          event.currentTarget.src = ecommerceServiceImage
+                        }}
+                      />
+                    </div>
+                    <div className="service-detail-section-copy">
+                      <span className="pill small">Section {index + 1}</span>
+                      <p className="muted service-detail-description">
+                        {section.description || 'Section description not available yet.'}
+                      </p>
+
+                      {section.bulletPoints.length > 0 && (
+                        <ul className="service-details-bullets">
+                          {section.bulletPoints.map((point, pointIndex) => (
+                            <li key={`detail-point-${index}-${pointIndex}`}>{point}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {section.bulletPoints.length === 0 && (
+                        <p className="muted service-detail-empty-points">Detailed bullet points will be added here.</p>
+                      )}
+                    </div>
+                  </article>
                 ))}
               </div>
             )}

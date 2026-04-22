@@ -53,13 +53,44 @@ export const emptyProject = () => ({
   highlights: [],
 });
 
+export const emptyServiceContentSection = () => ({
+  image: "",
+  description: "",
+  bulletPoints: [""],
+});
+
+export const SERVICE_CATEGORY_OPTIONS = [
+  {
+    value: "website-development",
+    label: "Website Development",
+  },
+  {
+    value: "app-development",
+    label: "App Development",
+  },
+  {
+    value: "webview-development",
+    label: "WebView Development",
+  },
+  {
+    value: "seo-content-marketing",
+    label: "SEO & Content Marketing",
+  },
+  {
+    value: "cloud-server-management",
+    label: "Cloud & Server Management",
+  },
+];
+
 export const emptyService = () => ({
   _id: "",
   name: "",
+  category: SERVICE_CATEGORY_OPTIONS[0].value,
   image: "",
   description: "",
   bulletPoints: [""],
   snapshots: [],
+  contentSections: [emptyServiceContentSection()],
   sortOrder: 0,
   isActive: true,
 });
@@ -161,6 +192,11 @@ export const arrayFromCsv = (value = "") =>
 export const normalizeServiceForm = (service = {}) => ({
   ...emptyService(),
   ...service,
+  category: SERVICE_CATEGORY_OPTIONS.some(
+    (item) => item.value === String(service.category || "").trim(),
+  )
+    ? String(service.category || "").trim()
+    : SERVICE_CATEGORY_OPTIONS[0].value,
   bulletPoints:
     Array.isArray(service.bulletPoints) && service.bulletPoints.length
       ? service.bulletPoints
@@ -168,6 +204,27 @@ export const normalizeServiceForm = (service = {}) => ({
   snapshots: Array.isArray(service.snapshots)
     ? service.snapshots.slice(0, 15)
     : [],
+  contentSections:
+    Array.isArray(service.contentSections) && service.contentSections.length
+      ? service.contentSections.slice(0, 20).map((section) => ({
+        ...emptyServiceContentSection(),
+        ...section,
+        bulletPoints:
+          Array.isArray(section?.bulletPoints) && section.bulletPoints.length
+            ? section.bulletPoints
+            : [""],
+      }))
+      : [
+        {
+          ...emptyServiceContentSection(),
+          image: String(service.image || service.snapshots?.[0] || "").trim(),
+          description: String(service.description || "").trim(),
+          bulletPoints:
+            Array.isArray(service.bulletPoints) && service.bulletPoints.length
+              ? service.bulletPoints
+              : [""],
+        },
+      ],
 });
 
 export const normalizeHeroForm = (slide = {}) => ({

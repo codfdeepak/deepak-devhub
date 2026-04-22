@@ -793,6 +793,16 @@
   gap: 10px;
 }
 
+.service-content-sections {
+  display: grid;
+  gap: 12px;
+}
+
+.service-content-section-card {
+  border: 1px dashed var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
 .service-bullet-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

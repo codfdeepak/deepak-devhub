@@ -5,6 +5,7 @@ import Hero from "../components/Hero";
 import PageFrame from "../components/PageFrame";
 import PartnerMarquee from "../components/PartnerMarquee";
 import TechnologiesSection from "../components/TechnologiesSection";
+import Projects from "./Projects";
 import Services from "./Services";
 import {
   selectPartners,
@@ -41,6 +42,11 @@ function Home() {
         error={partnersError}
       />
       <Services embedded />
+      <br />
+      <br />
+      <Projects embedded />
+      <br />
+      <br />
       <TechnologiesSection />
 
       {isConsultationOpen && (

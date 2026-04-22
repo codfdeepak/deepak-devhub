@@ -40,6 +40,7 @@ import {
   emptySkill,
   emptyProject,
   emptyOwnerProject,
+  emptyServiceContentSection,
   emptyService,
   emptyHeroSlide,
   emptySocial,
@@ -48,6 +49,7 @@ import {
   getTabGroupsForRole,
   normalizeServiceForm,
   normalizeHeroForm,
+  SERVICE_CATEGORY_OPTIONS,
 } from "../utils/adminConstants";
 
 export const useAdminApp = () => {
@@ -376,13 +378,8 @@ export const useAdminApp = () => {
     );
   };
 
-  const handleServiceCoverUpload = async (index, file) => {
-    if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
-    setServices((prev) =>
-      prev.map((svc, i) => (i === index ? { ...svc, image: dataUrl } : svc)),
-    );
-  };
+  const MAX_SERVICE_SECTIONS = 20;
+  const MAX_SECTION_BULLET_POINTS = 20;
 
   const handleHeroImageUpload = async (index, file) => {
     if (!file) return;
@@ -394,85 +391,228 @@ export const useAdminApp = () => {
     );
   };
 
-  const handleServiceSnapshotsUpload = async (index, files) => {
-    const fileList = Array.from(files || []);
-    if (!fileList.length) return;
-
-    const current = services[index]?.snapshots || [];
-    const remainingSlots = Math.max(0, 15 - current.length);
-    const selectedFiles = fileList.slice(0, remainingSlots);
-    const snapshots = await Promise.all(
-      selectedFiles.map((file) => fileToDataUrl(file)),
-    );
-
-    setServices((prev) =>
-      prev.map((svc, i) => {
-        if (i !== index) return svc;
-        return {
-          ...svc,
-          snapshots: [...(svc.snapshots || []), ...snapshots].slice(0, 15),
-        };
-      }),
-    );
-
-    if (fileList.length > selectedFiles.length) {
-      setToast("Only 15 snapshots allowed per service");
-      setTimeout(() => setToast(""), 2200);
-    }
-  };
-
-  const removeServiceSnapshot = (serviceIndex, snapshotIndex) => {
+  const addServiceContentSection = (serviceIndex) => {
     setServices((prev) =>
       prev.map((svc, i) => {
         if (i !== serviceIndex) return svc;
-        return {
-          ...svc,
-          snapshots: (svc.snapshots || []).filter(
-            (_, idx) => idx !== snapshotIndex,
-          ),
-        };
-      }),
-    );
-  };
-
-  const addServiceBulletPoint = (serviceIndex) => {
-    setServices((prev) =>
-      prev.map((svc, i) => {
-        if (i !== serviceIndex) return svc;
-        return { ...svc, bulletPoints: [...(svc.bulletPoints || []), ""] };
-      }),
-    );
-  };
-
-  const removeServiceBulletPoint = (serviceIndex, bulletIndex) => {
-    setServices((prev) =>
-      prev.map((svc, i) => {
-        if (i !== serviceIndex) return svc;
-        const current = svc.bulletPoints || [];
-        if (current.length <= 1) {
-          return { ...svc, bulletPoints: [""] };
+        const currentSections = Array.isArray(svc.contentSections)
+          ? svc.contentSections
+          : [];
+        if (currentSections.length >= MAX_SERVICE_SECTIONS) {
+          setToast("Only 20 service sections allowed");
+          setTimeout(() => setToast(""), 2200);
+          return svc;
         }
         return {
           ...svc,
-          bulletPoints: current.filter((_, idx) => idx !== bulletIndex),
+          contentSections: [
+            ...currentSections,
+            emptyServiceContentSection(),
+          ],
         };
       }),
     );
   };
 
-  const sanitizeServicePayload = (service) => ({
-    name: String(service.name || "").trim(),
-    image: String(service.image || "").trim(),
-    description: String(service.description || "").trim(),
-    bulletPoints: (service.bulletPoints || [])
+  const removeServiceContentSection = (serviceIndex, sectionIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc;
+        const currentSections = Array.isArray(svc.contentSections)
+          ? svc.contentSections
+          : [];
+
+        if (currentSections.length <= 1) {
+          return {
+            ...svc,
+            contentSections: [emptyServiceContentSection()],
+          };
+        }
+
+        return {
+          ...svc,
+          contentSections: currentSections.filter((_, idx) => idx !== sectionIndex),
+        };
+      }),
+    );
+  };
+
+  const handleServiceSectionImageUpload = async (serviceIndex, sectionIndex, file) => {
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc;
+        const nextSections = Array.isArray(svc.contentSections)
+          ? [...svc.contentSections]
+          : [];
+
+        while (nextSections.length <= sectionIndex) {
+          nextSections.push(emptyServiceContentSection());
+        }
+
+        nextSections[sectionIndex] = {
+          ...emptyServiceContentSection(),
+          ...(nextSections[sectionIndex] || {}),
+          image: dataUrl,
+        };
+
+        return {
+          ...svc,
+          contentSections: nextSections,
+        }
+      }),
+    );
+  };
+
+  const addServiceSectionBulletPoint = (serviceIndex, sectionIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc;
+        const nextSections = Array.isArray(svc.contentSections)
+          ? [...svc.contentSections]
+          : [emptyServiceContentSection()];
+
+        while (nextSections.length <= sectionIndex) {
+          nextSections.push(emptyServiceContentSection());
+        }
+
+        const currentPoints = Array.isArray(nextSections[sectionIndex]?.bulletPoints)
+          ? nextSections[sectionIndex].bulletPoints
+          : [];
+        if (currentPoints.length >= MAX_SECTION_BULLET_POINTS) {
+          setToast("Only 20 bullet points allowed per section");
+          setTimeout(() => setToast(""), 2200);
+          return svc;
+        }
+
+        nextSections[sectionIndex] = {
+          ...emptyServiceContentSection(),
+          ...(nextSections[sectionIndex] || {}),
+          bulletPoints: [...currentPoints, ""],
+        };
+
+        return {
+          ...svc,
+          contentSections: nextSections,
+        };
+      }),
+    );
+  };
+
+  const removeServiceSectionBulletPoint = (serviceIndex, sectionIndex, bulletIndex) => {
+    setServices((prev) =>
+      prev.map((svc, i) => {
+        if (i !== serviceIndex) return svc;
+        const nextSections = Array.isArray(svc.contentSections)
+          ? [...svc.contentSections]
+          : [emptyServiceContentSection()];
+
+        while (nextSections.length <= sectionIndex) {
+          nextSections.push(emptyServiceContentSection());
+        }
+
+        const currentPoints = Array.isArray(nextSections[sectionIndex]?.bulletPoints)
+          ? nextSections[sectionIndex].bulletPoints
+          : [""];
+
+        const filteredPoints =
+          currentPoints.length <= 1
+            ? [""]
+            : currentPoints.filter((_, idx) => idx !== bulletIndex);
+
+        nextSections[sectionIndex] = {
+          ...emptyServiceContentSection(),
+          ...(nextSections[sectionIndex] || {}),
+          bulletPoints: filteredPoints,
+        };
+
+        return {
+          ...svc,
+          contentSections: nextSections,
+        };
+      }),
+    );
+  };
+
+  const sanitizeServicePayload = (service) => {
+    const categoryValues = SERVICE_CATEGORY_OPTIONS.map((item) => item.value);
+    const normalizedCategory = categoryValues.includes(
+      String(service.category || "").trim(),
+    )
+      ? String(service.category || "").trim()
+      : SERVICE_CATEGORY_OPTIONS[0].value;
+
+    const sections = (Array.isArray(service.contentSections)
+      ? service.contentSections
+      : []
+    )
+      .map((section) => {
+        const image = String(section?.image || "").trim();
+        const description = String(section?.description || "").trim();
+        const bulletPoints = (section?.bulletPoints || [])
+          .map((point) => String(point || "").trim())
+          .filter(Boolean)
+          .slice(0, MAX_SECTION_BULLET_POINTS);
+
+        if (!image && !description && bulletPoints.length === 0) {
+          return null;
+        }
+
+        return {
+          image,
+          description,
+          bulletPoints,
+        };
+      })
+      .filter(Boolean)
+      .slice(0, MAX_SERVICE_SECTIONS);
+
+    const fallbackImage = String(service.image || service.snapshots?.[0] || "").trim();
+    const fallbackDescription = String(service.description || "").trim();
+    const fallbackPoints = (service.bulletPoints || [])
       .map((point) => String(point || "").trim())
-      .filter(Boolean),
-    snapshots: (service.snapshots || []).slice(0, 15),
-    sortOrder: Number.isFinite(Number(service.sortOrder))
-      ? Number(service.sortOrder)
-      : 0,
-    isActive: service.isActive !== false,
-  });
+      .filter(Boolean)
+      .slice(0, MAX_SECTION_BULLET_POINTS);
+
+    const contentSections =
+      sections.length > 0
+        ? sections
+        : [
+          {
+            image: fallbackImage,
+            description: fallbackDescription,
+            bulletPoints: fallbackPoints,
+          },
+        ].filter(
+          (section) =>
+            section.image || section.description || section.bulletPoints.length > 0,
+        );
+
+    const summary =
+      String(service.description || "").trim() ||
+      String(contentSections[0]?.description || "").trim();
+    const legacyBulletPoints =
+      (contentSections[0]?.bulletPoints || []).slice(0, 40);
+    const legacySnapshots = contentSections
+      .map((section) => String(section?.image || "").trim())
+      .filter(Boolean)
+      .slice(0, 15);
+
+    return {
+      name: String(service.name || "").trim(),
+      category: normalizedCategory,
+      image: "",
+      description: summary,
+      bulletPoints: legacyBulletPoints,
+      snapshots: legacySnapshots,
+      contentSections,
+      sortOrder: Number.isFinite(Number(service.sortOrder))
+        ? Number(service.sortOrder)
+        : 0,
+      isActive: service.isActive !== false,
+    };
+  };
 
   const sanitizeOwnerProjectPayload = (project) => {
     // Keep typing UX smooth in admin and parse only while saving.
@@ -520,6 +660,21 @@ export const useAdminApp = () => {
 
     if (!payload.name) {
       setToast("Service name is required");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    if (!payload.contentSections.length) {
+      setToast("Add at least one section");
+      setTimeout(() => setToast(""), 2200);
+      return;
+    }
+
+    const invalidSectionIndex = payload.contentSections.findIndex(
+      (section) => !section.description,
+    );
+    if (invalidSectionIndex !== -1) {
+      setToast(`Section ${invalidSectionIndex + 1} needs description`);
       setTimeout(() => setToast(""), 2200);
       return;
     }
@@ -992,12 +1147,12 @@ export const useAdminApp = () => {
     handleArrayField,
     handleProjectImages,
     removeProjectImage,
-    handleServiceCoverUpload,
     handleHeroImageUpload,
-    handleServiceSnapshotsUpload,
-    removeServiceSnapshot,
-    addServiceBulletPoint,
-    removeServiceBulletPoint,
+    addServiceContentSection,
+    removeServiceContentSection,
+    handleServiceSectionImageUpload,
+    addServiceSectionBulletPoint,
+    removeServiceSectionBulletPoint,
     handleSaveService,
     handleDeleteService,
     handleSaveOwnerProject,

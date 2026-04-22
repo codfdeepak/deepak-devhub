@@ -155,7 +155,7 @@ function Hero({ onDiscuss }) {
                   >
                     WhatsApp
                   </a>
-                  <Link className="cta hero-view-work-btn" to="/services">
+                  <Link className="cta hero-view-work-btn" to="/projects">
                     View Work
                   </Link>
                 </div>

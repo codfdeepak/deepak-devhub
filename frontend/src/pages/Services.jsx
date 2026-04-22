@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
+import ecommerceServiceImage from '../assets/ecommerce-service.svg'
 import ConsultationModal from '../components/ConsultationModal'
 import PageFrame from '../components/PageFrame'
-import ecommerceServiceImage from '../assets/ecommerce-service.svg'
+import ServiceCategoryIcon from '../components/ServiceCategoryIcon'
 import { selectServices, selectServicesError, selectServicesStatus } from '../Redux/slices/serviceSlice'
 import { fetchPublicServices } from '../Redux/thunks/serviceThunks'
+import {
+  getServiceCategoryCountMap,
+  mapServicesToCards,
+  SERVICE_CATEGORY_OPTIONS,
+} from '../utils/serviceCatalog'
 
 function Services({ embedded = false }) {
   const dispatch = useDispatch()
@@ -13,7 +19,6 @@ function Services({ embedded = false }) {
   const status = useSelector(selectServicesStatus)
   const error = useSelector(selectServicesError)
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
-  const [selectedServiceName, setSelectedServiceName] = useState('')
 
   useEffect(() => {
     if (status === 'idle') {
@@ -21,33 +26,33 @@ function Services({ embedded = false }) {
     }
   }, [dispatch, status])
 
+  const allServices = useMemo(
+    () => mapServicesToCards(services, ecommerceServiceImage),
+    [services],
+  )
+
+  const categoryCounts = useMemo(() => getServiceCategoryCountMap(allServices), [allServices])
+
+  const categoryCards = useMemo(
+    () =>
+      SERVICE_CATEGORY_OPTIONS.map((item) => ({
+        ...item,
+        count: categoryCounts[item.key] || 0,
+        bullets: [item.description, ...(Array.isArray(item.highlights) ? item.highlights : [])]
+          .map((line) => String(line || '').trim())
+          .filter((line, index, lines) => line && lines.findIndex((entry) => entry.toLowerCase() === line.toLowerCase()) === index)
+          .slice(0, 4),
+      })),
+    [categoryCounts],
+  )
+
   const deliveryPromises = [
     'On-time product delivery with clear milestones',
     'Secure development for websites and software products',
     'Performance-focused builds with SEO-ready architecture',
   ]
 
-  const webServices = useMemo(
-    () =>
-      (services || []).map((service, index) => ({
-        id: service?._id || '',
-        number: String(index + 1).padStart(2, '0'),
-        title: service?.name || `Service ${index + 1}`,
-        image: service?.image || service?.snapshots?.[0] || ecommerceServiceImage,
-        alt: service?.name
-          ? `${service.name} service preview image`
-          : 'Service preview image with website and software interface',
-        summary: service?.description || 'Customized implementation based on your business goals.',
-        points:
-          Array.isArray(service?.bulletPoints) && service.bulletPoints.length
-            ? service.bulletPoints.slice(0, 3)
-            : ['Custom strategy', 'Secure implementation', 'Business-ready delivery'],
-      })),
-    [services],
-  )
-
-  const openConsultationForm = (serviceName = '') => {
-    setSelectedServiceName(serviceName)
+  const openConsultationForm = () => {
     setIsConsultationOpen(true)
   }
 
@@ -81,84 +86,52 @@ function Services({ embedded = false }) {
               <li key={promise}>{promise}</li>
             ))}
           </ul>
-          <button
-            className="cta primary cta-btn"
-            type="button"
-            onClick={() => openConsultationForm('')}
-          >
+          <button className="cta primary cta-btn" type="button" onClick={openConsultationForm}>
             Get Free Consultation
           </button>
         </aside>
       </section>
 
+      <section className="panel services-category-panel">
+        <div className="services-category-grid" aria-label="Service categories">
+          {categoryCards.map((category) => (
+            <Link
+              key={category.key}
+              className="services-category-card services-category-card-link"
+              to={`/services/category/${category.key}`}
+            >
+              <span className="services-category-icon" aria-hidden="true">
+                <ServiceCategoryIcon kind={category.icon} />
+              </span>
+              <strong>{category.label}</strong>
+              <ul className="services-category-bullets">
+                {category.bullets.map((line) => (
+                  <li key={`${category.key}-${line}`}>{line}</li>
+                ))}
+              </ul>
+              <div className="services-category-meta">
+                <span className="services-category-count">{category.count} service{category.count === 1 ? '' : 's'}</span>
+                <span className="services-category-cta">Open Page →</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="web-services-panel">
         {status === 'loading' && <p className="muted">Loading latest services...</p>}
         {status === 'error' && <p className="muted">Unable to load services right now. {error}</p>}
-
-        {status === 'loaded' && webServices.length === 0 && (
+        {status === 'loaded' && allServices.length === 0 && (
           <article className="web-service-empty">
             <p className="muted">No services published yet. Please check back soon.</p>
-            <button className="cta primary cta-btn" type="button" onClick={() => openConsultationForm('')}>
-              Get Free Consultation
-            </button>
           </article>
-        )}
-
-        {webServices.length > 0 && (
-          <div className="web-service-grid">
-            {webServices.map((service) => (
-              <article
-                className="web-service-card"
-                key={service.id || `${service.title}-${service.number}`}
-              >
-                <div className="web-service-media">
-                  <img
-                    src={service.image}
-                    alt={service.alt}
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null
-                      event.currentTarget.src = ecommerceServiceImage
-                    }}
-                  />
-                </div>
-                <div className="web-service-content">
-                  <span className="pill small">Service {service.number}</span>
-                  <h3>{service.title}</h3>
-                  <p className="muted web-service-summary">{service.summary}</p>
-                  <ul className="web-service-points">
-                    {service.points.map((point, pointIndex) => (
-                      <li key={`${service.number}-point-${pointIndex}`}>{point}</li>
-                    ))}
-                  </ul>
-
-                  <div className="service-card-actions">
-                    <button
-                      className="cta primary cta-btn"
-                      type="button"
-                      onClick={() => openConsultationForm(service.title)}
-                    >
-                      Get Free Consultation
-                    </button>
-                    {service.id ? (
-                      <Link className="cta outline" to={`/services/${service.id}`}>
-                        Learn More
-                      </Link>
-                    ) : (
-                      <span className="cta outline disabled">Learn More</span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
         )}
       </section>
 
       {isConsultationOpen && (
         <ConsultationModal
           onClose={() => setIsConsultationOpen(false)}
-          defaultServiceName={selectedServiceName}
+          defaultServiceName=""
         />
       )}
     </>
